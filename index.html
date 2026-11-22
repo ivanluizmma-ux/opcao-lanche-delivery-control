@@ -62,10 +62,21 @@ aside{background:var(--pan);display:flex;flex-direction:column;min-height:0;bord
 </style></head><body>
 <div id="root"></div>
 <script>const KEY='olc_demo_v2';
-const TILE_URL='https://'+'tile.'+'openstreetmap.org/{z}/{x}/{y}.png';
+/* ===== MAPAS: cole aqui a sua chave da Geoapify (https://myprojects.geoapify.com) ===== */
+const GEO_KEY='0921bc7aa6764c29bfd04f2f70b0d14c';
+const useGeo=!!GEO_KEY; /* sem chave, o app continua funcionando com OpenStreetMap (só para teste) */
+const TILE_URL=useGeo?'https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}.png?apiKey='+GEO_KEY:'https://'+'tile.'+'openstreetmap.org/{z}/{x}/{y}.png';
+const TILE_OPTS={maxZoom:19,attribution:useGeo?'Powered by <a href="https://www.geoapify.com/" target="_blank" rel="noopener">Geoapify</a> | © <a href="https://openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors':'© OpenStreetMap'};
 let LOJA={end:'',lat:-3.1019,lng:-60.0250};try{const l=JSON.parse(localStorage.getItem('olc_loja'));if(l&&l.lat!=null)LOJA=l}catch(e){}
 let BASE=[LOJA.lat,LOJA.lng];
 const saveLoja=()=>{BASE=[LOJA.lat,LOJA.lng];try{localStorage.setItem('olc_loja',JSON.stringify(LOJA))}catch(e){}};
+/* busca de endereço: devolve {lat,lng} ou null */
+function geocode(a){
+ if(useGeo)return fetch('https://api.geoapify.com/v1/geocode/search?format=json&limit=1&lang=pt&filter=countrycode:br&bias=proximity:'+LOJA.lng+','+LOJA.lat+'&text='+encodeURIComponent(a)+'&apiKey='+GEO_KEY)
+  .then(r=>r.json()).then(j=>j.results&&j.results.length?{lat:+j.results[0].lat,lng:+j.results[0].lon}:null);
+ return fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q='+encodeURIComponent(a))
+  .then(r=>r.json()).then(j=>j.length?{lat:+j[0].lat,lng:+j[0].lon}:null);
+}
 /* Status iguais aos do CompraAgora */
 const ST={preparo:['Em preparo','#d97706'],rota:['Em rota de entrega','#0891b2'],finalizado:['Pedido finalizado','#9ca3af']};
 const RST={rascunho:'Rascunho',confirmada:'Confirmada',andamento:'Em andamento',finalizada:'Finalizada',cancelada:'Cancelada'};
@@ -136,18 +147,27 @@ if(location.hash.startsWith('#entregador=')){
   dTxt=n?(`<b>Próxima: #${n.num} ${esc(n.nome)}</b>`+(legKm!=null?` · ${legKm.toFixed(1)} km · ${Math.max(1,Math.round(legMin))} min<br><small>Rota completa: ${totKm.toFixed(1)} km · ~${Math.max(1,Math.round(totMin))} min (trânsito não considerado)</small>`:'')+(approx?'<br><small>Rota aproximada (linha reta): não foi possível consultar o serviço de rotas.</small>':'')):'';
   setInfo();
  }
+ function routeCall(pts){
+  if(useGeo)return fetch('https://api.geoapify.com/v1/routing?mode=drive&waypoints='+pts.map(p=>p[0]+','+p[1]).join('%7C')+'&apiKey='+GEO_KEY)
+   .then(r=>r.json()).then(j=>{const f=j.features&&j.features[0];if(!f)throw new Error('sem rota');
+    const g=f.geometry,pr=f.properties,lines=g.type==='MultiLineString'?g.coordinates:[g.coordinates],ll=[];
+    lines.forEach(seg=>seg.forEach(c=>ll.push([c[1],c[0]])));
+    const lg=pr.legs&&pr.legs[0]?pr.legs[0]:pr;
+    return{ll,legKm:lg.distance/1000,legMin:lg.time/60,totKm:pr.distance/1000,totMin:pr.time/60}});
+  return fetch('https://router.project-osrm.org/route/v1/driving/'+pts.map(p=>p[1]+','+p[0]).join(';')+'?overview=full&geometries=geojson')
+   .then(r=>r.json()).then(j=>{if(j.code!=='Ok'||!j.routes||!j.routes.length)throw new Error('sem rota');const rt=j.routes[0];
+    return{ll:rt.geometry.coordinates.map(c=>[c[1],c[0]]),legKm:rt.legs[0].distance/1000,legMin:rt.legs[0].duration/60,totKm:rt.distance/1000,totMin:rt.duration/60}});
+ }
  function fetchRoute(){
   const stops=dStops();
   if(!stops.length){dLayer.clearLayers();dTxt='';setInfo();return}
   const from=dPos||BASE;dLast=Date.now();dLastPos=from;const my=++dSeq;
   const pts=[from].concat(stops.map(pt));
-  fetch('https://router.project-osrm.org/route/v1/driving/'+pts.map(p=>p[1]+','+p[0]).join(';')+'?overview=full&geometries=geojson')
-  .then(r=>r.json()).then(j=>{if(my!==dSeq)return;if(j.code!=='Ok'||!j.routes||!j.routes.length)throw new Error('sem rota');
-   const rt=j.routes[0];drawRoute(rt.geometry.coordinates.map(c=>[c[1],c[0]]),rt.legs[0].distance/1000,rt.legs[0].duration/60,rt.distance/1000,rt.duration/60,false)})
+  routeCall(pts).then(r=>{if(my!==dSeq)return;drawRoute(r.ll,r.legKm,r.legMin,r.totKm,r.totMin,false)})
   .catch(()=>{if(my!==dSeq)return;drawRoute(pts,null,null,0,0,true)});
  }
  function updateMap(){
-  if(!dm){dm=L.map('dmap').setView(BASE,12);L.tileLayer(TILE_URL,{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(dm);
+  if(!dm){dm=L.map('dmap').setView(BASE,12);L.tileLayer(TILE_URL,TILE_OPTS).addTo(dm);
    dLayer=L.layerGroup().addTo(dm);dMk=L.layerGroup().addTo(dm);setTimeout(()=>dm.invalidateSize(),200);
    new ResizeObserver(()=>dm.invalidateSize()).observe(document.getElementById('dmap'))}
   const st=dStops();dMk.clearLayers();
@@ -183,7 +203,7 @@ if(location.hash.startsWith('#entregador=')){
    const first=!dPos;dPos=[p.coords.latitude,p.coords.longitude];dGeo='';
    if(dMe)dMe.setLatLng(dPos);else dMe=L.circleMarker(dPos,{radius:9,color:'#fff',weight:3,fillColor:'#2563eb',fillOpacity:1}).addTo(dm);
    if(first)updateMap();
-   if(dStops().length&&(first||(dLastPos&&hav(dPos,dLastPos)*1000>40&&Date.now()-dLast>15000)))fetchRoute();
+   if(dStops().length&&(first||(dLastPos&&hav(dPos,dLastPos)*1000>80&&Date.now()-dLast>30000)))fetchRoute();
    setInfo();
   },()=>{dGeo='Ative a localização do aparelho para a rota em tempo real. Por enquanto a rota parte da loja.';setInfo()},{enableHighAccuracy:true,maximumAge:5000,timeout:20000});
  }else{dGeo='Este aparelho não oferece localização. A rota parte da loja.';setInfo()}
@@ -192,7 +212,7 @@ if(location.hash.startsWith('#entregador=')){
 else{
  let tab='pedidos',q='',fil='',act=null,fixing=null,map,mk,rl,lojaMk,settingLoja=false,showCanc=false;
  const sel=new Set(),editing=new Set();
- document.getElementById('root').innerHTML=`<div id="app"><header><b>Opção Lanche · Delivery Control</b><span>Modo demonstração · Manaus · dados fictícios</span><div class="sp"></div>
+ document.getElementById('root').innerHTML=`<div id="app"><header><b>Opção Lanche · Delivery Control</b><span>Modo demonstração · Manaus · dados fictícios${useGeo?'':' · ⚠ chave Geoapify não configurada (mapa de teste)'}</span><div class="sp"></div>
  <button id="bLoja">Endereço da loja</button><button id="bNew">+ Pedido fictício</button><button id="bRst">Reiniciar demonstração</button></header>
  <aside><div class="tabs"><button data-t="pedidos">Pedidos</button><button data-t="rotas">Rotas</button></div><div class="pane" id="pane"></div><div class="det" id="det" hidden></div></aside>
  <div id="mapwrap"><div id="map"></div><div class="bar" id="bar"></div><div class="leg" id="leg"></div>
@@ -201,7 +221,7 @@ else{
  <div class="row" style="margin:0"><button class="p" id="lojaBusca">Buscar no mapa</button><button id="lojaClick">Marcar no mapa</button><button id="lojaFecha">Fechar</button></div>
  <div id="lojaMsg" style="margin-top:6px;color:#5b6b79">Você também pode arrastar o pin da loja no mapa.</div></div></div></div>`;
  map=L.map('map').setView([-3.09,-60.03],12);
- L.tileLayer(TILE_URL,{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+ L.tileLayer(TILE_URL,TILE_OPTS).addTo(map);
  mk=L.layerGroup().addTo(map);rl=L.layerGroup().addTo(map);
  lojaMk=L.marker(BASE,{draggable:true,icon:L.divIcon({className:'',html:'<div class="num" style="background:#0f766e">L</div>',iconSize:[26,26]})}).addTo(map).bindTooltip('Loja (arraste para ajustar)');
  lojaMk.on('dragend',()=>{const q2=lojaMk.getLatLng();LOJA.lat=q2.lat;LOJA.lng=q2.lng;saveLoja();render()});
@@ -212,9 +232,9 @@ else{
  const lojaMsg=m=>{document.getElementById('lojaMsg').textContent=m};
  function openLoja(){document.getElementById('lojaBox').hidden=false;document.getElementById('lojaEnd').value=LOJA.end||''}
  function buscaLoja(){const a=document.getElementById('lojaEnd').value.trim();LOJA.end=a;saveLoja();if(!a)return lojaMsg('Digite o endereço.');lojaMsg('Buscando...');
-  fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q='+encodeURIComponent(a)).then(r=>r.json()).then(j=>{
-   if(!j.length)return lojaMsg('Endereço não encontrado. Tente sem o número ou use "Marcar no mapa".');
-   LOJA.lat=+j[0].lat;LOJA.lng=+j[0].lon;saveLoja();lojaMk.setLatLng(BASE);map.flyTo(BASE,16);render();lojaMsg('Localização encontrada. Confira o pin e arraste se precisar ajustar.')})
+  geocode(a).then(r=>{
+   if(!r)return lojaMsg('Endereço não encontrado. Tente sem o número ou use "Marcar no mapa".');
+   LOJA.lat=r.lat;LOJA.lng=r.lng;saveLoja();lojaMk.setLatLng(BASE);map.flyTo(BASE,16);render();lojaMsg('Localização encontrada. Confira o pin e arraste se precisar ajustar.')})
   .catch(()=>lojaMsg('A busca falhou. Use "Marcar no mapa" ou arraste o pin.'))}
  function flash(o){if(o.lat!=null)map.flyTo(pt(o),15)}
  function focus(id){act=id;const o=O(id);if(o.lat!=null&&o.status!=='finalizado')map.flyTo(pt(o),15);render()}
