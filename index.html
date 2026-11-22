@@ -118,7 +118,7 @@ if(location.hash.startsWith('#entregador=')){
     <div class="row"><a href="${gmaps(o)}" target="_blank" rel="noopener"><button>Abrir no Google Maps</button></a>
     ${r.status==='andamento'&&o.status==='transito'?`<button class="p" data-a="ok" data-o="${o.id}">Concluída</button><button class="d" data-a="pb" data-o="${o.id}">Problema</button>`:''}</div></div></div>`}).join('')}</div>`).join('')}
   <div id="dmap"></div></div>`;
-  dm=L.map('dmap').setView(BASE,12);L.tileLayer('https://openstreetmap.org{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(dm);
+  dm=L.map('dmap').setView(BASE,12);L.tileLayer('https://openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(dm);
   const pts=[];rs.forEach(r=>r.ids.forEach((id,i)=>{const o=O(id);if(o.lat!=null){pts.push(pt(o));L.marker(pt(o),{icon:L.divIcon({className:'',html:`<div class="num">${i+1}</div>`,iconSize:[26,26]})}).addTo(dm)}}));
   if(pts.length)dm.fitBounds(pts,{padding:[30,30]});
  };
@@ -144,7 +144,7 @@ else{
  <div class="row" style="margin:0"><button class="p" id="lojaBusca">Buscar no mapa</button><button id="lojaClick">Marcar no mapa</button><button id="lojaFecha">Fechar</button></div>
  <div id="lojaMsg" style="margin-top:6px;color:#5b6b79">Você também pode arrastar o pin da loja no mapa.</div></div></div></div>`;
  map=L.map('map').setView([-3.09,-60.03],12);
-L.tileLayer('https://openstreetmap.org{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+L.tileLayer('https://openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
  mk=L.layerGroup().addTo(map);rl=L.layerGroup().addTo(map);
  lojaMk=L.marker(BASE,{draggable:true,icon:L.divIcon({className:'',html:'<div class="num" style="background:#0f766e">L</div>',iconSize:[26,26]})}).addTo(map).bindTooltip('Loja (arraste para ajustar)');
  lojaMk.on('dragend',()=>{const q2=lojaMk.getLatLng();LOJA.lat=q2.lat;LOJA.lng=q2.lng;saveLoja();render()});
