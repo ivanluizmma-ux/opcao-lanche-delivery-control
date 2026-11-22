@@ -131,7 +131,7 @@ const numIcon=(n,col)=>L.divIcon({className:'',html:`<div class="num" ${col?`sty
 /* ================= ENTREGADOR ================= */
 if(location.hash.startsWith('#entregador=')){
  const did=location.hash.split('=')[1];const D=DRIVERS.find(d=>d.id===did);
- let dm,dLayer,dMk,dMe,dPos=null,dLastPos=null,dLast=0,dSig='',dSeq=0,dFit=true,dTxt='',dGeo='';
+ let dm,dLayer,dMk,dMe,dPos=null,dLastPos=null,dLast=0,dSig='',dSeq=0,dFit=true,dTxt='',dGeo='',dTail=null;
  const dRoutes=()=>S.routes.filter(r=>r.driver===did&&['confirmada','andamento'].includes(r.status));
  const dStops=()=>{const out=[];dRoutes().forEach(r=>r.ids.forEach(id=>{const o=O(id);if(o&&o.status!=='finalizado'&&o.lat!=null)out.push(o)}));return out};
  document.getElementById('root').innerHTML=`<div class="drv"><h2>Olá, ${esc(D?D.nome:'entregador')}</h2>
@@ -153,18 +153,32 @@ if(location.hash.startsWith('#entregador=')){
     const g=f.geometry,pr=f.properties,lines=g.type==='MultiLineString'?g.coordinates:[g.coordinates],ll=[];
     lines.forEach(seg=>seg.forEach(c=>ll.push([c[1],c[0]])));
     const lg=pr.legs&&pr.legs[0]?pr.legs[0]:pr;
-    return{ll,legKm:lg.distance/1000,legMin:lg.time/60,totKm:pr.distance/1000,totMin:pr.time/60}});
+    /* trechos separados (um por parada), usados para só recalcular o trecho até a próxima parada */
+    const legs=(pr.legs&&pr.legs.length===lines.length&&lines.length===pts.length-1)?lines.map((seg,i)=>({ll:seg.map(c=>[c[1],c[0]]),km:pr.legs[i].distance/1000,min:pr.legs[i].time/60})):null;
+    return{ll,legs,legKm:lg.distance/1000,legMin:lg.time/60,totKm:pr.distance/1000,totMin:pr.time/60}});
   return fetch('https://router.project-osrm.org/route/v1/driving/'+pts.map(p=>p[1]+','+p[0]).join(';')+'?overview=full&geometries=geojson')
    .then(r=>r.json()).then(j=>{if(j.code!=='Ok'||!j.routes||!j.routes.length)throw new Error('sem rota');const rt=j.routes[0];
-    return{ll:rt.geometry.coordinates.map(c=>[c[1],c[0]]),legKm:rt.legs[0].distance/1000,legMin:rt.legs[0].duration/60,totKm:rt.distance/1000,totMin:rt.duration/60}});
+    return{ll:rt.geometry.coordinates.map(c=>[c[1],c[0]]),legs:null,legKm:rt.legs[0].distance/1000,legMin:rt.legs[0].duration/60,totKm:rt.distance/1000,totMin:rt.duration/60}});
  }
+ /* Economia de créditos: a rota completa só é calculada quando a lista de paradas muda.
+    Enquanto o entregador anda, só o trecho até a próxima parada é recalculado (1 crédito) e os trechos seguintes ficam guardados. */
  function fetchRoute(){
   const stops=dStops();
-  if(!stops.length){dLayer.clearLayers();dTxt='';setInfo();return}
+  if(!stops.length){dLayer.clearLayers();dTxt='';dTail=null;setInfo();return}
   const from=dPos||BASE;dLast=Date.now();dLastPos=from;const my=++dSeq;
+  const sig=stops.map(o=>o.id).join(',');
+  const live=!!(dTail&&dTail.sig===sig);
   const pts=[from].concat(stops.map(pt));
-  routeCall(pts).then(r=>{if(my!==dSeq)return;drawRoute(r.ll,r.legKm,r.legMin,r.totKm,r.totMin,false)})
-  .catch(()=>{if(my!==dSeq)return;drawRoute(pts,null,null,0,0,true)});
+  if(live){
+   routeCall([from,pt(stops[0])]).then(r=>{if(my!==dSeq)return;
+    drawRoute(r.ll.concat(dTail.ll),r.legKm,r.legMin,r.legKm+dTail.km,r.legMin+dTail.min,false)})
+   .catch(()=>{/* mantém a linha anterior; tenta de novo no próximo movimento */});
+   return;
+  }
+  routeCall(pts).then(r=>{if(my!==dSeq)return;
+   dTail=r.legs?{sig,ll:[].concat(...r.legs.slice(1).map(l=>l.ll)),km:r.legs.slice(1).reduce((a,l)=>a+l.km,0),min:r.legs.slice(1).reduce((a,l)=>a+l.min,0)}:null;
+   drawRoute(r.ll,r.legKm,r.legMin,r.totKm,r.totMin,false)})
+  .catch(()=>{if(my!==dSeq)return;dTail=null;drawRoute(pts,null,null,0,0,true)});
  }
  function updateMap(){
   if(!dm){dm=L.map('dmap').setView(BASE,12);L.tileLayer(TILE_URL,TILE_OPTS).addTo(dm);
