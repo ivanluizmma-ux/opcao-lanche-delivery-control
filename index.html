@@ -3,8 +3,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Opção Lanche Delivery Control</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍔</text></svg>">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root{--bg:#eef1f4;--ink:#14202b;--mut:#5b6b79;--line:#d5dce2;--pan:#fff;--ac:#0f766e}
 *{box-sizing:border-box}html,body{height:100%;margin:0;overflow:hidden}
@@ -38,8 +38,11 @@ aside{background:var(--pan);display:flex;flex-direction:column;min-height:0;bord
 .st i{font-style:normal;background:var(--ink);color:#fff;border-radius:50%;min-width:20px;height:20px;text-align:center;font-size:12px;line-height:20px}
 .st div{flex:1}.st button{padding:1px 6px}
 .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-#map{height:100%;width:100%}
-.num{background:var(--ink);color:#fff;border-radius:50%;text-align:center;font-weight:700;font-size:12px;line-height:22px;border:2px solid #fff;width:26px!important;height:26px!important;line-height:22px}
+#map{height:100%;width:100%;z-index:1}
+.leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow,.leaflet-tile-container,.leaflet-pane>svg,.leaflet-pane>canvas,.leaflet-zoom-box,.leaflet-image-layer,.leaflet-layer{position:absolute;left:0;top:0}
+.leaflet-container{overflow:hidden;position:relative}
+.leaflet-tile{filter:inherit;visibility:inherit;margin:0!important;padding:0!important;max-width:none!important;max-height:none!important}
+.num{background:var(--ink);color:#fff;border-radius:50%;text-align:center;font-weight:700;font-size:12px;line-height:22px;border:2px solid #fff;width:26px!important;height:26px!important}
 .bar{position:absolute;z-index:500;left:60px;top:10px;background:#fff;border-radius:8px;padding:6px 10px;box-shadow:0 1px 6px #0003;font-size:12px}
 .leg{position:absolute;z-index:500;right:10px;bottom:24px;background:#fff;border-radius:8px;padding:6px 10px;box-shadow:0 1px 6px #0003;font-size:12px}
 .leg div{display:flex;gap:6px;align-items:center}.leg s{width:10px;height:10px;border-radius:50%;display:inline-block}
@@ -61,7 +64,6 @@ const saveLoja=()=>{BASE=[LOJA.lat,LOJA.lng];try{localStorage.setItem('olc_loja'
 const ST={recebido:['Recebido','#6b7280'],preparo:['Em preparação','#d97706'],pronto:['Pronto para entrega','#16a34a'],selecionado:['Selecionado p/ rota','#2563eb'],atribuido:['Atribuído','#7c3aed'],transito:['Em trânsito','#0891b2'],entregue:['Entregue','#9ca3af'],problema:['Problema na entrega','#dc2626']};
 const RST={rascunho:'Rascunho',confirmada:'Confirmada',andamento:'Em andamento',finalizada:'Finalizada',cancelada:'Cancelada'};
 const DRIVERS=[{id:'d1',nome:'Carlos (fictício)'},{id:'d2',nome:'Marina (fictícia)'},{id:'d3',nome:'Jorge (fictício)'}];
-// Coordenadas aproximadas por bairro, só para a demonstração
 const PLACES=[
 ['Rua Joaquim Nabuco, 420','Centro','Perto do Teatro Amazonas',-3.1306,-60.0230],
 ['Av. Djalma Batista, 1200','Chapada','Em frente ao shopping',-3.0925,-60.0220],
@@ -87,7 +89,7 @@ function seed(){
  return{orders:o,routes:[],seq:1,nextNum:1014};
 }
 let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
-if(!S||!S.orders)S=seed();
+if(!S||!S.orders||!S.orders[0]||typeof S.orders[0].lat!=='number'){S=seed();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const O=id=>S.orders.find(o=>o.id===id), R=id=>S.routes.find(r=>r.id===id);
 const free=o=>!o.routeId&&['recebido','preparo','pronto'].includes(o.status);
@@ -98,7 +100,7 @@ function suggest(ids){let left=ids.map(O).filter(Boolean),p=BASE,out=[];const nl
  while(left.length){left.sort((a,b)=>hav(p,pt(a))-hav(p,pt(b)));const n=left.shift();out.push(n.id);p=pt(n)}return out.concat(nl.map(o=>o.id))}
 function gmaps(o){return 'https://www.google.com/maps/dir/?api=1&destination='+(o.lat!=null?o.lat+','+o.lng:encodeURIComponent(o.end))}
 const badge=s=>`<span class="bd" style="background:${ST[s][1]}">${ST[s][0]}</span>`;
-function syncRoute(r){ // atualiza status da rota a partir dos pedidos
+function syncRoute(r){
  if(['cancelada','finalizada','rascunho'].includes(r.status))return;
  const os=r.ids.map(O);if(os.every(o=>['entregue','problema'].includes(o.status)))r.status='finalizada';
 }
@@ -106,7 +108,7 @@ function syncRoute(r){ // atualiza status da rota a partir dos pedidos
 /* ================= ENTREGADOR ================= */
 if(location.hash.startsWith('#entregador=')){
  const did=location.hash.split('=')[1];const D=DRIVERS.find(d=>d.id===did);
- let dm,dl;
+ let dm;
  const view=()=>{
   try{S=JSON.parse(localStorage.getItem(KEY))||S}catch(e){}
   const rs=S.routes.filter(r=>r.driver===did&&['confirmada','andamento'].includes(r.status));
@@ -123,7 +125,7 @@ if(location.hash.startsWith('#entregador=')){
   L.tileLayer(TILE_URL,{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(dm);
   const pts=[];rs.forEach(r=>r.ids.forEach((id,i)=>{const o=O(id);if(o.lat!=null){pts.push(pt(o));L.marker(pt(o),{icon:L.divIcon({className:'',html:`<div class="num">${i+1}</div>`,iconSize:[26,26]})}).addTo(dm)}}));
   if(pts.length)dm.fitBounds(pts,{padding:[30,30]});
-  setTimeout(()=>dm&&dm.invalidateSize(),150);
+  setTimeout(()=>dm&&dm.invalidateSize(),200);
  };
  document.getElementById('root').addEventListener('click',e=>{
   const b=e.target.closest('button[data-a]');if(!b)return;const a=b.dataset.a;
@@ -165,7 +167,6 @@ else{
  function toggle(id){const o=O(id);if(!free(o))return focus(id);sel.has(id)?sel.delete(id):sel.add(id);act=id;render()}
  function render(){
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
-  // mapa
   mk.clearLayers();rl.clearLayers();
   S.orders.forEach(o=>{if(o.lat==null)return;const c=ST[o.status][1],s=sel.has(o.id);
    L.circleMarker(pt(o),{radius:s?12:9,fillColor:c,fillOpacity:1,color:s?'#000':'#fff',weight:s?4:2}).addTo(mk)
@@ -217,11 +218,10 @@ else{
     ${dra?`<button data-up="${r.id}|${i}">↑</button><button data-dn="${r.id}|${i}">↓</button><button class="d" data-rm="${r.id}|${id}">✕</button>`:''}</div>`}).join('')}
    <div class="row">${dra?`<button data-sg="${r.id}">Sugerir sequência</button><button data-ad="${r.id}" ${addable.length?'':'disabled'}>Adicionar selecionados (${addable.length})</button><button class="p" data-cf="${r.id}" ${r.ids.length?'':'disabled'}>Confirmar rota</button>`:''}
    ${['rascunho','confirmada','andamento'].includes(r.status)?`<button class="d" data-cn="${r.id}">Cancelar</button>`:''}
-   ${['confirmada','andamento'].includes(r.status)?`<button data-fn="${r.id}">Finalizar</button>`:''}
+   ${['confirmada','andamento'].includes(r.status)?`<button class="p" data-fn="${r.id}">Finalizar</button>`:''}
    <button data-vw="${r.id}">Ver no mapa</button></div>
    ${['confirmada','andamento'].includes(r.status)?`<div style="margin-top:6px"><small>Link do entregador (abra em outra aba para testar):</small><br><input readonly style="width:100%" value="${esc(link)}" onclick="this.select()"></div>`:''}</div>`}).join(''):'<div class="empty">Nenhuma rota ainda. Selecione pedidos na aba Pedidos e crie uma rota.</div>';
  }
- // eventos
  document.addEventListener('click',e=>{
   const t=e.target,g=a=>t.closest('['+a+']'),v=(a)=>g(a)&&g(a).getAttribute(a);
   if(t.id==='bLoja'){openLoja();return}
@@ -258,6 +258,6 @@ else{
  document.addEventListener('change',e=>{if(e.target.id==='lojaEnd'){LOJA.end=e.target.value.trim();saveLoja();return}if(e.target.id==='fs'){fil=e.target.value;renderList()}});
  window.addEventListener('storage',()=>{try{S=JSON.parse(localStorage.getItem(KEY))||S}catch(e){}render()});
  render();
- setTimeout(()=>map.invalidateSize(),150);
+ setTimeout(()=>map.invalidateSize(),200);
 }
 </script></body></html>
