@@ -1,0 +1,259 @@
+
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Opção Lanche Delivery Control</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<style>
+:root{--bg:#eef1f4;--ink:#14202b;--mut:#5b6b79;--line:#d5dce2;--pan:#fff;--ac:#0f766e}
+*{box-sizing:border-box}html,body{height:100%;margin:0;overflow:hidden}
+body{font:14px/1.4 "Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg)}
+button,input,select{font:inherit}
+button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:5px 9px;cursor:pointer}
+button:hover{border-color:var(--ac)}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--ac)}
+button.p{background:var(--ac);color:#fff;border-color:var(--ac)}button.d{color:#b91c1c}
+button:disabled{opacity:.45;cursor:not-allowed}
+input,select{border:1px solid var(--line);border-radius:6px;padding:5px 8px;background:#fff}
+#app{display:grid;grid-template-columns:410px 1fr;grid-template-rows:auto 1fr;height:100%}
+header{grid-column:1/3;display:flex;gap:10px;align-items:center;padding:8px 14px;background:var(--ink);color:#fff}
+header b{font-size:16px}header span{opacity:.7;font-size:12px}header .sp{flex:1}
+header button{background:transparent;color:#fff;border-color:#ffffff55}
+aside{background:var(--pan);display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--line)}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;border:0;border-radius:0;padding:9px;background:none;border-bottom:3px solid transparent}
+.tabs button.on{border-bottom-color:var(--ac);font-weight:600}
+.pane{overflow:auto;flex:1;padding:8px}
+.tools{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}.tools input{flex:1;min-width:120px}
+.o{border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:6px;cursor:pointer;display:grid;grid-template-columns:22px 1fr;gap:6px}
+.o:hover{border-color:var(--ac)}.o.act{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.o.sel{background:#e6f4f1}.o small{color:var(--mut)}
+.bd{display:inline-block;padding:1px 7px;border-radius:10px;color:#fff;font-size:11px;white-space:nowrap}
+.warn{background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;padding:5px 8px;margin:5px 0;font-size:12px}
+.pend{background:#fee2e2;border:1px solid #f87171;border-radius:6px;padding:2px 6px;font-size:11px}
+.det{border-top:1px solid var(--line);padding:10px;background:#f8fafb;max-height:42%;overflow:auto}
+.rt{border:1px solid var(--line);border-radius:8px;padding:9px;margin-bottom:8px}
+.rt h4{margin:0 0 4px;display:flex;justify-content:space-between;gap:6px}
+.st{display:flex;gap:6px;align-items:center;padding:4px 0;border-top:1px dashed var(--line)}
+.st i{font-style:normal;background:var(--ink);color:#fff;border-radius:50%;min-width:20px;height:20px;text-align:center;font-size:12px;line-height:20px}
+.st div{flex:1}.st button{padding:1px 6px}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+#map{height:100%;width:100%}
+.num{background:var(--ink);color:#fff;border-radius:50%;text-align:center;font-weight:700;font-size:12px;line-height:22px;border:2px solid #fff;width:26px!important;height:26px!important;line-height:22px}
+.bar{position:absolute;z-index:500;left:60px;top:10px;background:#fff;border-radius:8px;padding:6px 10px;box-shadow:0 1px 6px #0003;font-size:12px}
+.leg{position:absolute;z-index:500;right:10px;bottom:24px;background:#fff;border-radius:8px;padding:6px 10px;box-shadow:0 1px 6px #0003;font-size:12px}
+.leg div{display:flex;gap:6px;align-items:center}.leg s{width:10px;height:10px;border-radius:50%;display:inline-block}
+#mapwrap{position:relative;min-height:0}
+.empty{color:var(--mut);padding:14px;text-align:center}
+@media(max-width:800px){#app{grid-template-columns:1fr;grid-template-rows:auto 45vh 1fr}header{grid-column:1}aside{order:3}}
+/* entregador */
+.drv{max-width:520px;margin:0 auto;padding:12px}.drv .rt{background:#fff}
+.drv #dmap{height:220px;border-radius:8px;margin:8px 0}
+.drv .row button{flex:1;padding:10px}
+</style></head><body>
+<div id="root"></div>
+<script>
+const KEY='olc_demo_v1';
+let LOJA={end:'',lat:-3.1019,lng:-60.0250};try{const l=JSON.parse(localStorage.getItem('olc_loja'));if(l&&l.lat!=null)LOJA=l}catch(e){}
+let BASE=[LOJA.lat,LOJA.lng];
+const saveLoja=()=>{BASE=[LOJA.lat,LOJA.lng];try{localStorage.setItem('olc_loja',JSON.stringify(LOJA))}catch(e){}};
+const ST={recebido:['Recebido','#6b7280'],preparo:['Em preparação','#d97706'],pronto:['Pronto para entrega','#16a34a'],selecionado:['Selecionado p/ rota','#2563eb'],atribuido:['Atribuído','#7c3aed'],transito:['Em trânsito','#0891b2'],entregue:['Entregue','#9ca3af'],problema:['Problema na entrega','#dc2626']};
+const RST={rascunho:'Rascunho',confirmada:'Confirmada',andamento:'Em andamento',finalizada:'Finalizada',cancelada:'Cancelada'};
+const DRIVERS=[{id:'d1',nome:'Carlos (fictício)'},{id:'d2',nome:'Marina (fictícia)'},{id:'d3',nome:'Jorge (fictício)'}];
+// Coordenadas aproximadas por bairro, só para a demonstração
+const PLACES=[
+['Rua Joaquim Nabuco, 420','Centro','Perto do Teatro Amazonas',-3.1306,-60.0230],
+['Av. Djalma Batista, 1200','Chapada','Em frente ao shopping',-3.0925,-60.0220],
+['Rua 10 de Julho, 85','Centro','Ao lado da praça',-3.1295,-60.0215],
+['Av. Eduardo Ribeiro, 300','Centro','Edifício comercial',-3.1337,-60.0235],
+['Rua Pará, 77','Adrianópolis','Casa azul',-3.1100,-60.0100],
+['Av. Ephigênio Salles, 900','Aleixo','Condomínio Vila Real',-3.0850,-59.9800],
+['Av. Coronel Teixeira, 5000','Ponta Negra','Perto da orla',-3.0820,-60.1060],
+['Rua Rio Jutaí, 150','Vieiralves','Prédio com portaria',-3.1000,-60.0150],
+['Av. Torquato Tapajós, 2200','Flores','Posto de gasolina',-3.0780,-60.0140],
+['Rua Paraíba, 33','Parque 10','Casa de esquina',-3.0950,-60.0200],
+['Av. Max Teixeira, 700','Cidade Nova','Próximo à feira',-3.0300,-59.9700],
+['Rua Rio Mar, 60','Japiim','Ao lado da escola',-3.1350,-59.9900]];
+const NAMES=['Ana Souza','Bruno Lima','Carla Mendes','Diego Rocha','Elaine Costa','Fábio Alves','Gisele Nunes','Hugo Pereira','Iara Ribeiro','João Batista','Karen Dias','Luís Fonseca'];
+const ITEMS=['2 X-Burguer + 1 refri 2L','Combo X-Bacon + batata','3 tapiocas de queijo','1 pizza grande calabresa','2 sucos + 2 sanduíches','1 X-Egg + 1 suco','Marmitex executiva x2'];
+const pad=n=>String(n).padStart(2,'0');
+const hora=()=>{const d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes())};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function seed(){
+ const stt=['preparo','pronto','pronto','recebido','preparo','pronto','pronto','pronto','recebido','preparo','pronto','pronto'];
+ const o=PLACES.map((p,i)=>({id:'p'+(i+1),num:1001+i,nome:NAMES[i],tel:'(92) 9'+(9100+i*37)+'-'+(1000+i*113),end:p[0]+', '+p[1]+', Manaus - AM',bairro:p[1],ref:p[2],itens:ITEMS[i%ITEMS.length],hora:pad(18+Math.floor(i/6))+':'+pad((i*7)%60),status:stt[i],lat:p[3],lng:p[4],pend:false}));
+ o.push({id:'p13',num:1013,nome:'Marcos Tavares',tel:'(92) 99999-0013',end:'Rua sem número, Tarumã, Manaus - AM',bairro:'Tarumã',ref:'Chácara perto da ponte',itens:'1 pizza média',hora:'19:20',status:'recebido',lat:null,lng:null,pend:true});
+ return{orders:o,routes:[],seq:1,nextNum:1014};
+}
+let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+if(!S||!S.orders)S=seed();
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const O=id=>S.orders.find(o=>o.id===id), R=id=>S.routes.find(r=>r.id===id);
+const free=o=>!o.routeId&&['recebido','preparo','pronto'].includes(o.status);
+const hav=(a,b)=>{const t=x=>x*Math.PI/180,dl=t(b[0]-a[0]),dn=t(b[1]-a[1]);const h=Math.sin(dl/2)**2+Math.cos(t(a[0]))*Math.cos(t(b[0]))*Math.sin(dn/2)**2;return 12742*Math.asin(Math.sqrt(h))};
+const pt=o=>[o.lat,o.lng];
+function stats(r){let p=BASE,d=0;const ids=r.ids.map(O).filter(o=>o&&o.lat!=null);ids.forEach(o=>{d+=hav(p,pt(o));p=pt(o)});d*=1.3;return{km:d,min:Math.round(d/25*60+3*ids.length)}}
+function suggest(ids){let left=ids.map(O).filter(Boolean),p=BASE,out=[];const nl=left.filter(o=>o.lat==null);left=left.filter(o=>o.lat!=null);
+ while(left.length){left.sort((a,b)=>hav(p,pt(a))-hav(p,pt(b)));const n=left.shift();out.push(n.id);p=pt(n)}return out.concat(nl.map(o=>o.id))}
+function gmaps(o){return 'https://www.google.com/maps/dir/?api=1&destination='+(o.lat!=null?o.lat+','+o.lng:encodeURIComponent(o.end))}
+const badge=s=>`<span class="bd" style="background:${ST[s][1]}">${ST[s][0]}</span>`;
+function syncRoute(r){ // atualiza status da rota a partir dos pedidos
+ if(['cancelada','finalizada','rascunho'].includes(r.status))return;
+ const os=r.ids.map(O);if(os.every(o=>['entregue','problema'].includes(o.status)))r.status='finalizada';
+}
+
+/* ================= ENTREGADOR ================= */
+if(location.hash.startsWith('#entregador=')){
+ const did=location.hash.split('=')[1];const D=DRIVERS.find(d=>d.id===did);
+ let dm,dl;
+ const view=()=>{
+  try{S=JSON.parse(localStorage.getItem(KEY))||S}catch(e){}
+  const rs=S.routes.filter(r=>r.driver===did&&['confirmada','andamento'].includes(r.status));
+  document.getElementById('root').innerHTML=`<div class="drv"><h2>Olá, ${esc(D?D.nome:'entregador')}</h2>
+  ${rs.length?'':'<div class="empty">Nenhuma rota liberada para você agora.</div>'}
+  ${rs.map(r=>`<div class="rt"><h4><span>Rota ${esc(r.id)}</span><span>${RST[r.status]}</span></h4>
+   ${r.status==='confirmada'?`<button class="p" style="width:100%" data-a="ini" data-r="${r.id}">Iniciar rota</button>`:''}
+   ${r.ids.map((id,i)=>{const o=O(id);return `<div class="st" style="align-items:flex-start"><i>${i+1}</i><div><b>${esc(o.nome)}</b> ${badge(o.status)}<br>
+    <a href="tel:${esc(o.tel)}">${esc(o.tel)}</a><br>${esc(o.end)}<br><small>Ref.: ${esc(o.ref)}</small><br><small>${esc(o.itens)}</small>
+    <div class="row"><a href="${gmaps(o)}" target="_blank" rel="noopener"><button>Abrir no Google Maps</button></a>
+    ${r.status==='andamento'&&o.status==='transito'?`<button class="p" data-a="ok" data-o="${o.id}">Concluída</button><button class="d" data-a="pb" data-o="${o.id}">Problema</button>`:''}</div></div></div>`}).join('')}</div>`).join('')}
+  <div id="dmap"></div></div>`;
+  dm=L.map('dmap').setView(BASE,12);L.tileLayer('https://openstreetmap.org{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(dm);
+  const pts=[];rs.forEach(r=>r.ids.forEach((id,i)=>{const o=O(id);if(o.lat!=null){pts.push(pt(o));L.marker(pt(o),{icon:L.divIcon({className:'',html:`<div class="num">${i+1}</div>`,iconSize:[26,26]})}).addTo(dm)}}));
+  if(pts.length)dm.fitBounds(pts,{padding:[30,30]});
+ };
+ document.getElementById('root').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-a]');if(!b)return;const a=b.dataset.a;
+  if(a==='ini'){const r=R(b.dataset.r);r.status='andamento';r.ids.forEach(id=>{const o=O(id);if(o.status==='atribuido')o.status='transito'})}
+  if(a==='ok'){O(b.dataset.o).status='entregue'}
+  if(a==='pb'){const m=prompt('Qual foi o problema na entrega?');if(m===null)return;const o=O(b.dataset.o);o.status='problema';o.obs=m}
+  S.routes.forEach(syncRoute);save();view();
+ });
+ window.addEventListener('storage',view);view();
+}
+/* ================= ADMIN ================= */
+else{
+ let tab='pedidos',q='',fil='',act=null,fixing=null,map,mk,rl,lojaMk,settingLoja=false;
+ const sel=new Set();
+ document.getElementById('root').innerHTML=`<div id="app"><header><b>Opção Lanche · Delivery Control</b><span>Modo demonstração · Manaus · dados fictícios</span><div class="sp"></div>
+ <button id="bLoja">Endereço da loja</button><button id="bNew">+ Pedido fictício</button><button id="bRst">Reiniciar demonstração</button></header>
+ <aside><div class="tabs"><button data-t="pedidos">Pedidos</button><button data-t="rotas">Rotas</button></div><div class="pane" id="pane"></div><div class="det" id="det" hidden></div></aside>
+ <div id="mapwrap"><div id="map"></div><div class="bar" id="bar"></div><div class="leg" id="leg"></div>
+ <div class="leg" id="lojaBox" hidden style="left:60px;right:auto;top:50px;bottom:auto;width:340px;font-size:13px"><b>Endereço da loja</b>
+ <input id="lojaEnd" placeholder="Rua, número, bairro, Manaus" style="width:100%;margin:6px 0">
+ <div class="row" style="margin:0"><button class="p" id="lojaBusca">Buscar no mapa</button><button id="lojaClick">Marcar no mapa</button><button id="lojaFecha">Fechar</button></div>
+ <div id="lojaMsg" style="margin-top:6px;color:#5b6b79">Você também pode arrastar o pin da loja no mapa.</div></div></div></div>`;
+ map=L.map('map').setView([-3.09,-60.03],12);
+L.tileLayer('https://openstreetmap.org{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+ mk=L.layerGroup().addTo(map);rl=L.layerGroup().addTo(map);
+ lojaMk=L.marker(BASE,{draggable:true,icon:L.divIcon({className:'',html:'<div class="num" style="background:#0f766e">L</div>',iconSize:[26,26]})}).addTo(map).bindTooltip('Loja (arraste para ajustar)');
+ lojaMk.on('dragend',()=>{const q2=lojaMk.getLatLng();LOJA.lat=q2.lat;LOJA.lng=q2.lng;saveLoja();render()});
+ document.getElementById('leg').innerHTML=Object.values(ST).map(s=>`<div><s style="background:${s[1]}"></s>${s[0]}</div>`).join('');
+ map.on('click',e=>{if(settingLoja){LOJA.lat=e.latlng.lat;LOJA.lng=e.latlng.lng;settingLoja=false;saveLoja();lojaMk.setLatLng(e.latlng);render();return}if(!fixing)return;const o=O(fixing);o.lat=e.latlng.lat;o.lng=e.latlng.lng;o.pend=false;fixing=null;save();render();flash(o)});
+ const lojaMsg=m=>{document.getElementById('lojaMsg').textContent=m};
+ function openLoja(){document.getElementById('lojaBox').hidden=false;document.getElementById('lojaEnd').value=LOJA.end||''}
+ function buscaLoja(){const a=document.getElementById('lojaEnd').value.trim();LOJA.end=a;saveLoja();if(!a)return lojaMsg('Digite o endereço.');lojaMsg('Buscando...');
+  fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q='+encodeURIComponent(a)).then(r=>r.json()).then(j=>{
+   if(!j.length)return lojaMsg('Endereço não encontrado. Tente sem o número ou use "Marcar no mapa".');
+   LOJA.lat=+j[0].lat;LOJA.lng=+j[0].lon;saveLoja();lojaMk.setLatLng(BASE);map.flyTo(BASE,16);render();lojaMsg('Localização encontrada. Confira o pin e arraste se precisar ajustar.')})
+  .catch(()=>lojaMsg('A busca falhou. Use "Marcar no mapa" ou arraste o pin.'))}
+ function flash(o){if(o.lat!=null)map.flyTo(pt(o),15)}
+ function focus(id){act=id;const o=O(id);if(o.lat!=null)map.flyTo(pt(o),15);render()}
+ function toggle(id){const o=O(id);if(!free(o))return focus(id);sel.has(id)?sel.delete(id):sel.add(id);act=id;render()}
+ function render(){
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
+  // mapa
+  mk.clearLayers();rl.clearLayers();
+  S.orders.forEach(o=>{if(o.lat==null)return;const c=ST[o.status][1],s=sel.has(o.id);
+   L.circleMarker(pt(o),{radius:s?12:9,fillColor:c,fillOpacity:1,color:s?'#000':'#fff',weight:s?4:2}).addTo(mk)
+   .bindTooltip('#'+o.num+' '+o.nome+' · '+ST[o.status][0]).on('click',()=>toggle(o.id))});
+  S.routes.filter(r=>['rascunho','confirmada','andamento'].includes(r.status)).forEach((r,k)=>{
+   const col=['#0f766e','#b45309','#6d28d9','#be123c'][k%4];const pts=[BASE];
+   r.ids.forEach((id,i)=>{const o=O(id);if(o.lat==null)return;pts.push(pt(o));
+    L.marker(pt(o),{icon:L.divIcon({className:'',html:`<div class="num" style="background:${col}">${i+1}</div>`,iconSize:[26,26]}),interactive:false}).addTo(rl)});
+   L.polyline(pts,{color:col,weight:4,opacity:.8,dashArray:r.status==='rascunho'?'8 6':null}).addTo(rl)});
+  document.getElementById('bar').innerHTML=settingLoja?'Clique no mapa para marcar a loja':fixing?'Clique no mapa para marcar a localização do pedido #'+O(fixing).num+' <button id="bCx">Cancelar</button>':`${S.orders.length} pedidos · ${sel.size} selecionado(s)`;
+  const cx=document.getElementById('bCx');if(cx)cx.onclick=()=>{fixing=null;render()};
+  tab==='pedidos'?renderList():renderRoutes();renderDet();
+ }
+ function renderList(){
+  const ql=q.toLowerCase();
+  const L2=S.orders.filter(o=>(!fil||o.status===fil)&&(!ql||[o.nome,o.num,o.end,o.bairro].join(' ').toLowerCase().includes(ql)));
+  const selFree=[...sel].filter(id=>free(O(id)));
+  const prep=selFree.filter(id=>O(id).status!=='pronto').length;
+  document.getElementById('pane').innerHTML=`<div class="tools"><input id="qs" placeholder="Buscar nome, nº, endereço, bairro" value="${esc(q)}">
+   <select id="fs"><option value="">Todos os status</option>${Object.keys(ST).map(k=>`<option value="${k}" ${fil===k?'selected':''}>${ST[k][0]}</option>`).join('')}</select></div>
+   <div class="rt" style="background:#f8fafb"><b>Montar rota</b> (${selFree.length} pedido(s))
+   <div class="row"><select id="sd"><option value="">Escolher entregador (fictício)</option>${DRIVERS.map(d=>`<option value="${d.id}">${esc(d.nome)}</option>`).join('')}</select>
+   <button class="p" id="bMk" ${selFree.length?'':'disabled'}>Criar rota</button><button id="bCl" ${sel.size?'':'disabled'}>Limpar seleção</button></div>
+   ${prep?`<div class="warn">⚠ ${prep} pedido(s) ainda não estão prontos. Eles podem entrar no plano, mas não envie antes de ficarem prontos.</div>`:''}</div>
+   ${L2.length?L2.map(o=>`<div class="o ${sel.has(o.id)?'sel':''} ${act===o.id?'act':''}" data-o="${o.id}">
+    <input type="checkbox" ${sel.has(o.id)?'checked':''} ${free(o)?'':'disabled'} data-c="${o.id}">
+    <div><b>#${o.num} ${esc(o.nome)}</b> ${badge(o.status)} ${o.pend?'<span class="pend">localização pendente</span>':''}<br>
+    <small>${esc(o.bairro)} · ${esc(o.hora)}${o.driver?' · '+esc(DRIVERS.find(d=>d.id===o.driver)?.nome||''):''}</small><br><small>${esc(o.itens)}</small></div></div>`).join(''):'<div class="empty">Nenhum pedido encontrado.</div>'}`;
+ }
+ function renderDet(){
+  const el=document.getElementById('det'),o=act&&O(act);if(!o||tab!=='pedidos'){el.hidden=true;return}el.hidden=false;
+  const near=S.orders.filter(x=>x.id!==o.id&&x.lat!=null&&o.lat!=null&&free(x)&&hav(pt(o),pt(x))<=2).sort((a,b)=>hav(pt(o),pt(a))-hav(pt(o),pt(b)));
+  el.innerHTML=`<b>#${o.num} ${esc(o.nome)}</b> ${badge(o.status)}<br>Tel.: ${esc(o.tel)}<br>${esc(o.end)}<br>Bairro: ${esc(o.bairro)} · Ref.: ${esc(o.ref)}<br>Itens: ${esc(o.itens)}<br>Recebido às ${esc(o.hora)}${o.obs?'<br>Problema: '+esc(o.obs):''}
+  ${o.status==='preparo'?'<div class="warn">⚠ Em preparação: não envie antes de ficar pronto.</div>':''}
+  ${o.pend?'<div class="pend" style="margin-top:6px">Endereço sem localização no mapa.</div>':''}
+  <div class="row">${['recebido','preparo','pronto'].includes(o.status)&&!o.routeId?['recebido','preparo','pronto'].map(s=>`<button data-s="${s}" ${o.status===s?'disabled':''}>${ST[s][0]}</button>`).join(''):''}
+  <button data-fix="${o.id}">${o.lat==null?'Marcar no mapa':'Corrigir localização'}</button></div>
+  ${near.length?`<div style="margin-top:6px"><small>Sugestão: ${near.length} pedido(s) livre(s) a até 2 km, que podem ir juntos:</small><br>${near.slice(0,4).map(x=>`<button data-near="${x.id}" style="margin:2px 2px 0 0">#${x.num} ${esc(x.bairro)} (${hav(pt(o),pt(x)).toFixed(1)} km)</button>`).join('')}</div>`:''}`;
+ }
+ function renderRoutes(){
+  const rs=S.routes.slice().reverse();
+  document.getElementById('pane').innerHTML=rs.length?rs.map(r=>{const dr=DRIVERS.find(d=>d.id===r.driver),s=stats(r),dra=r.status==='rascunho';
+   const link=location.href.split('#')[0]+'#entregador='+r.driver;
+   const addable=[...sel].filter(id=>free(O(id)));
+   return `<div class="rt"><h4><span>Rota ${r.id} · ${esc(dr?.nome)}</span><span class="bd" style="background:#475569">${RST[r.status]}</span></h4>
+   <small>${r.ids.length} entrega(s) · ~${s.km.toFixed(1)} km · ~${s.min} min (estimativa em linha reta, sem trânsito)</small>
+   ${r.ids.map((id,i)=>{const o=O(id);return `<div class="st"><i>${i+1}</i><div><b>#${o.num} ${esc(o.nome)}</b> ${badge(o.status)}<br><small>${esc(o.end)}</small>
+    ${dra&&o.status==='preparo'?'<br><span class="pend" style="background:#fef3c7;border-color:#f59e0b">⚠ ainda em preparação</span>':''}</div>
+    ${dra?`<button data-up="${r.id}|${i}">↑</button><button data-dn="${r.id}|${i}">↓</button><button class="d" data-rm="${r.id}|${id}">✕</button>`:''}</div>`}).join('')}
+   <div class="row">${dra?`<button data-sg="${r.id}">Sugerir sequência</button><button data-ad="${r.id}" ${addable.length?'':'disabled'}>Adicionar selecionados (${addable.length})</button><button class="p" data-cf="${r.id}" ${r.ids.length?'':'disabled'}>Confirmar rota</button>`:''}
+   ${['rascunho','confirmada','andamento'].includes(r.status)?`<button class="d" data-cn="${r.id}">Cancelar</button>`:''}
+   ${['confirmada','andamento'].includes(r.status)?`<button data-fn="${r.id}">Finalizar</button>`:''}
+   <button data-vw="${r.id}">Ver no mapa</button></div>
+   ${['confirmada','andamento'].includes(r.status)?`<div style="margin-top:6px"><small>Link do entregador (abra em outra aba para testar):</small><br><input readonly style="width:100%" value="${esc(link)}" onclick="this.select()"></div>`:''}</div>`}).join(''):'<div class="empty">Nenhuma rota ainda. Selecione pedidos na aba Pedidos e crie uma rota.</div>';
+ }
+ // eventos
+ document.addEventListener('click',e=>{
+  const t=e.target,g=a=>t.closest('['+a+']'),v=(a)=>g(a)&&g(a).getAttribute(a);
+  if(t.id==='bLoja'){openLoja();return}
+  if(t.id==='lojaFecha'){document.getElementById('lojaBox').hidden=true;return}
+  if(t.id==='lojaBusca'){buscaLoja();return}
+  if(t.id==='lojaClick'){LOJA.end=document.getElementById('lojaEnd').value.trim();saveLoja();settingLoja=true;lojaMsg('Clique no ponto do mapa onde fica a loja.');render();return}
+  if(t.id==='bNew'){const p=PLACES[Math.floor(Math.random()*PLACES.length)],n=S.nextNum++;
+   S.orders.push({id:'p'+Date.now(),num:n,nome:NAMES[Math.floor(Math.random()*NAMES.length)],tel:'(92) 99'+Math.floor(1000+Math.random()*8999)+'-'+Math.floor(1000+Math.random()*8999),end:p[0]+', '+p[1]+', Manaus - AM',bairro:p[1],ref:p[2],itens:ITEMS[Math.floor(Math.random()*ITEMS.length)],hora:hora(),status:'recebido',lat:p[3]+(Math.random()-.5)*.006,lng:p[4]+(Math.random()-.5)*.006,pend:false});save();render();return}
+  if(t.id==='bRst'){if(confirm('Apagar tudo e recriar os dados fictícios?')){S=seed();sel.clear();act=null;save();render()}return}
+  if(v('data-t')){tab=v('data-t');render();return}
+  if(t.id==='bCl'){sel.clear();render();return}
+  if(t.id==='bMk'){const d=document.getElementById('sd').value;if(!d)return alert('Escolha um entregador.');
+   const ids=suggest([...sel].filter(id=>free(O(id))));const r={id:'R'+S.seq++,driver:d,ids,status:'rascunho'};
+   ids.forEach(id=>{const o=O(id);o.prev=o.status;o.status='selecionado';o.routeId=r.id;o.driver=d});S.routes.push(r);sel.clear();tab='rotas';save();render();return}
+  if(t.dataset.c){toggle(t.dataset.c);return}
+  const row=t.closest('.o');if(row&&!t.closest('button')){focus(row.dataset.o);return}
+  if(t.dataset.s){O(act).status=t.dataset.s;save();render();return}
+  if(t.dataset.fix){fixing=t.dataset.fix;render();return}
+  if(t.dataset.near){const id=t.dataset.near;sel.add(id);if(act)sel.add(act);render();return}
+  const A=(a)=>t.dataset[a];
+  if(A('up')||A('dn')){const [rid,i]=(A('up')||A('dn')).split('|'),r=R(rid),k=+i,j=A('up')?k-1:k+1;if(j>=0&&j<r.ids.length){[r.ids[k],r.ids[j]]=[r.ids[j],r.ids[k]]}save();render();return}
+  if(A('rm')){const [rid,id]=A('rm').split('|'),r=R(rid),o=O(id);r.ids=r.ids.filter(x=>x!==id);o.status=o.prev||'pronto';o.routeId=null;o.driver=null;save();render();return}
+  if(A('sg')){const r=R(A('sg'));r.ids=suggest(r.ids);save();render();return}
+  if(A('ad')){const r=R(A('ad'));[...sel].filter(id=>free(O(id))).forEach(id=>{const o=O(id);o.prev=o.status;o.status='selecionado';o.routeId=r.id;o.driver=r.driver;r.ids.push(id)});sel.clear();save();render();return}
+  if(A('cf')){const r=R(A('cf'));const n=r.ids.filter(id=>O(id).prev&&O(id).prev!=='pronto').length;
+   if(n&&!confirm(n+' pedido(s) ainda não estão prontos. Confirmar mesmo assim?'))return;
+   r.status='confirmada';r.ids.forEach(id=>O(id).status='atribuido');save();render();return}
+  if(A('cn')){const r=R(A('cn'));if(!confirm('Cancelar a rota '+r.id+'? Os pedidos voltam para a lista de livres.'))return;
+   r.status='cancelada';r.ids.forEach(id=>{const o=O(id);if(!['entregue','problema'].includes(o.status)){o.status=o.prev||'pronto'}o.routeId=null;o.driver=null});save();render();return}
+  if(A('fn')){const r=R(A('fn'));r.status='finalizada';r.ids.forEach(id=>{const o=O(id);if(!['entregue','problema'].includes(o.status))o.status='entregue'});save();render();return}
+  if(A('vw')){const r=R(A('vw')),p=r.ids.map(O).filter(o=>o.lat!=null).map(pt);if(p.length)map.fitBounds(p.concat([BASE]),{padding:[40,40]})}
+ });
+ document.addEventListener('input',e=>{if(e.target.id==='qs'){q=e.target.value;const p=e.target.selectionStart;renderList();const n=document.getElementById('qs');n.focus();n.setSelectionRange(p,p)}});
+ document.addEventListener('change',e=>{if(e.target.id==='lojaEnd'){LOJA.end=e.target.value.trim();saveLoja();return}if(e.target.id==='fs'){fil=e.target.value;renderList()}});
+ window.addEventListener('storage',()=>{try{S=JSON.parse(localStorage.getItem(KEY))||S}catch(e){}render()});
+ render();
+}
+</script></body></html>
