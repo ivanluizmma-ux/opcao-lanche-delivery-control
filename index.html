@@ -54,10 +54,15 @@ aside{background:var(--pan);display:flex;flex-direction:column;min-height:0;bord
 #mapwrap{position:relative;min-height:0;height:100%;width:100%}
 .empty{color:var(--mut);padding:14px;text-align:center}
 @media(max-width:800px){#app{grid-template-columns:1fr;grid-template-rows:auto 45vh 1fr}header{grid-column:1}aside{order:3}}
-/* entregador */
+/* entregador: a página precisa rolar (o painel admin usa tela fixa) */
+html.drvpage,html.drvpage body{height:auto;min-height:100%;overflow:auto}html.drvpage #root{height:auto}
 .drv{max-width:520px;margin:0 auto;padding:12px}.drv .rt{background:#fff}
-.drv #dmap{height:48vh;min-height:280px;border-radius:8px;margin:8px 0}
+.drv #dmap{height:40vh;min-height:240px;border-radius:8px;margin:8px 0}
 .drv h2{margin:6px 0}
+.drv #dmap.dfull{position:fixed;left:0;top:0;right:0;bottom:0;width:100%;height:100vh;min-height:0;margin:0;border-radius:0;z-index:1000}
+#dmap .dfi{display:none;background:#fffbeb;border:1px solid #f59e0b;border-radius:8px;padding:6px 10px;max-width:72vw;font-size:13px;box-shadow:0 1px 6px #0004}
+#dmap.dfull .dfi{display:block}
+#dmap .dfs{padding:9px 12px;font-weight:600;box-shadow:0 1px 6px #0004}
 .drv .row button{flex:1;padding:10px}
 </style></head><body>
 <div id="root"></div>
@@ -130,6 +135,7 @@ const numIcon=(n,col)=>L.divIcon({className:'',html:`<div class="num" ${col?`sty
 
 /* ================= ENTREGADOR ================= */
 if(location.hash.startsWith('#entregador=')){
+ document.documentElement.classList.add('drvpage');
  const did=location.hash.split('=')[1];const D=DRIVERS.find(d=>d.id===did);
  let dm,dLayer,dMk,dMe,dPos=null,dLastPos=null,dLast=0,dSig='',dSeq=0,dFit=true,dTxt='',dGeo='',dTail=null;
  const dRoutes=()=>S.routes.filter(r=>r.driver===did&&['confirmada','andamento'].includes(r.status));
@@ -137,7 +143,7 @@ if(location.hash.startsWith('#entregador=')){
  document.getElementById('root').innerHTML=`<div class="drv"><h2>Olá, ${esc(D?D.nome:'entregador')}</h2>
   <div class="warn" id="dinfo" hidden></div><div id="dmap"></div>
   <div class="row" style="margin:0 0 8px"><button id="dctr">Centralizar em mim</button></div><div id="dlist"></div></div>`;
- const setInfo=()=>{const el=document.getElementById('dinfo');const t=(dTxt||'')+(dGeo?(dTxt?'<br>':'')+'<small>'+dGeo+'</small>':'');el.hidden=!t;el.innerHTML=t};
+ const setInfo=()=>{const el=document.getElementById('dinfo');const t=(dTxt||'')+(dGeo?(dTxt?'<br>':'')+'<small>'+dGeo+'</small>':'');el.hidden=!t;el.innerHTML=t;document.querySelectorAll('.dfi').forEach(e=>{e.innerHTML=t})};
  function drawRoute(ll,legKm,legMin,totKm,totMin,approx){
   dLayer.clearLayers();
   L.polyline(ll,{color:'#fff',weight:10,opacity:.9}).addTo(dLayer);
@@ -183,6 +189,10 @@ if(location.hash.startsWith('#entregador=')){
  function updateMap(){
   if(!dm){dm=L.map('dmap').setView(BASE,12);L.tileLayer(TILE_URL,TILE_OPTS).addTo(dm);
    dLayer=L.layerGroup().addTo(dm);dMk=L.layerGroup().addTo(dm);setTimeout(()=>dm.invalidateSize(),200);
+   const FS=L.Control.extend({options:{position:'topright'},onAdd(){const b=L.DomUtil.create('button','dfs');b.textContent='⛶ Tela cheia';L.DomEvent.disableClickPropagation(b);
+    b.onclick=()=>{const el=document.getElementById('dmap'),on=el.classList.toggle('dfull');b.textContent=on?'✕ Voltar aos pedidos':'⛶ Tela cheia';setTimeout(()=>dm.invalidateSize(),50)};return b}});
+   const FI=L.Control.extend({options:{position:'bottomleft'},onAdd(){const d=L.DomUtil.create('div','dfi');L.DomEvent.disableClickPropagation(d);d.innerHTML=dTxt;return d}});
+   dm.addControl(new FS());dm.addControl(new FI());
    new ResizeObserver(()=>dm.invalidateSize()).observe(document.getElementById('dmap'))}
   const st=dStops();dMk.clearLayers();
   st.forEach((o,k)=>L.marker(pt(o),{icon:numIcon(k+1)}).bindTooltip('#'+o.num+' '+o.nome).addTo(dMk));
