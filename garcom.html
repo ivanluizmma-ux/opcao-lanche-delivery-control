@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0D0F0E">
+<title>Garçom · Opção Lanche</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+<style>
+:root{--bg:#0D0F0E;--bg2:#111714;--card:#171D1A;--line:#252E29;--g:#00C875;--g2:#087443;--y:#F5C542;--ink:#F1F5F2;--mut:#929D96;--bad:#E5484D;color-scheme:dark}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 Inter,"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;-webkit-font-smoothing:antialiased;padding-bottom:env(safe-area-inset-bottom)}
+button,input,textarea{font:inherit;color:inherit}
+input,textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+input:focus,textarea:focus{outline:0;border-color:var(--g);box-shadow:0 0 0 3px rgba(0,200,117,.14)}
+label{display:block;font-size:.78rem;color:var(--mut);margin:10px 0 4px}
+.b{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:11px 14px;font-weight:600;cursor:pointer;transition:transform .1s,background .15s}
+.b:active{transform:scale(.97)}.b.p{background:var(--g);border-color:var(--g);color:#04130B}.b.big{width:100%;padding:14px;font-size:1rem;margin-top:14px}.b:disabled{opacity:.4}
+.lnk{background:none;border:0;color:var(--g);padding:6px;cursor:pointer}
+header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:calc(10px + env(safe-area-inset-top)) 14px 10px;display:flex;align-items:center;gap:10px}
+header h1{margin:0;font-size:1.05rem;flex:1}#back{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--card);font-size:1.3rem;line-height:1}
+#who{color:var(--mut);font-size:.8rem}.dot{width:8px;height:8px;border-radius:50%;background:var(--g)}.dot.off{background:var(--bad)}
+main{padding:14px 14px 110px;max-width:640px;margin:0 auto}
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-bottom:12px}
+.chip{flex:none;border:1px solid var(--line);background:var(--bg2);color:var(--mut);border-radius:99px;padding:7px 14px;font-size:.85rem;font-weight:550;cursor:pointer}
+.chip.on{background:rgba(0,200,117,.12);border-color:var(--g);color:var(--g)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.mesa{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:12px;text-align:left;cursor:pointer;min-height:92px;display:flex;flex-direction:column;gap:2px;transition:transform .1s}
+.mesa:active{transform:scale(.97)}.mesa b{font-size:1.02rem}.mesa span{font-size:.78rem;color:var(--mut)}.mesa em{font-style:normal;margin-top:auto;color:var(--y);font-weight:700}
+.mesa.ocupada{border-color:var(--g2)}.mesa.ocupada span{color:var(--g)}.mesa.conta{border-color:var(--y)}.mesa.conta span{color:var(--y)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:6px 14px}
+.it{display:grid;grid-template-columns:1fr auto 36px;gap:10px;align-items:start;padding:10px 0;border-top:1px solid var(--line)}.it:first-child{border-top:0}
+.it small{display:block;color:var(--mut);font-size:.8rem}.pr{color:var(--y);font-weight:650;font-variant-numeric:tabular-nums}
+.x{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--bg);color:var(--bad);font-size:1.2rem;cursor:pointer}
+.tot{display:flex;justify-content:space-between;align-items:center;padding:12px 0 8px;border-top:1px solid var(--line);font-weight:650}.tot b{color:var(--y);font-size:1.3rem}
+.vazio,.note{color:var(--mut);text-align:center;padding:26px 8px;font-size:.9rem}.note{padding:10px;color:var(--y)}
+.prow{width:100%;display:flex;align-items:center;gap:10px;text-align:left;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:11px 12px;margin-bottom:8px;cursor:pointer}
+.prow>div{flex:1;min-width:0}.prow small{display:block;color:var(--mut);font-size:.76rem}.prow.off{opacity:.45}
+.add{width:34px;height:34px;border-radius:50%;background:var(--g);color:#04130B;display:grid;place-items:center;font-size:1.3rem;font-weight:700;flex:none}
+#cartbar{position:fixed;left:0;right:0;bottom:0;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--bg) 35%)}
+#cartbar .b{width:100%;max-width:612px;display:flex;justify-content:space-between;margin:0 auto}
+dialog{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:18px 18px 0 0;padding:0;width:100%;max-width:560px;margin:auto auto 0;max-height:88vh}
+dialog[open]{display:flex;flex-direction:column;animation:up .2s ease-out}dialog::backdrop{background:rgba(0,0,0,.6)}
+@keyframes up{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+.dh{padding:16px 16px 8px}.dh h2{margin:0;font-size:1.05rem}.db{overflow:auto;padding:0 16px 8px;flex:1}.df{padding:12px 16px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--line);display:flex;gap:10px}.df .b{flex:1}
+.gt{font-size:.8rem;color:var(--mut);margin:14px 0 6px;font-weight:600}
+.opt{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}.opt>span{flex:1}.opt small{color:var(--y)}
+.opt.v{cursor:pointer}.rd{width:20px;height:20px;border-radius:50%;border:2px solid var(--line);flex:none}.opt.on .rd{border-color:var(--g);background:radial-gradient(var(--g) 45%,transparent 50%)}
+.st{display:flex;align-items:center;gap:10px}.st button{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--bg);font-size:1.1rem;cursor:pointer}.st b{min-width:18px;text-align:center}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:90px;z-index:50;display:flex;flex-direction:column;gap:8px;align-items:center}
+.tt{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--g);border-radius:12px;padding:10px 14px;font-size:.88rem;animation:up .2s}.tt.e{border-left-color:var(--bad)}
+#login{position:fixed;inset:0;background:var(--bg);display:grid;place-items:center;padding:20px;z-index:60}
+#lf{width:min(340px,100%);background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px}#lf h1{margin:0 0 4px;font-size:1.25rem}#lf h1 b{color:var(--g)}#lerr{color:var(--bad);font-size:.85rem;min-height:1.2em;margin:8px 0 0}
+</style>
+</head>
+<body>
+<div id="login"><form id="lf"><h1>Opção <b>Lanche</b></h1><div style="color:var(--mut);font-size:.9rem">Garçom · entre com sua conta</div>
+<label for="le">E-mail</label><input id="le" type="email" autocomplete="username" required><label for="ls">Senha</label><input id="ls" type="password" autocomplete="current-password" required>
+<button class="b p big" id="lb">Entrar</button><p id="lerr"></p></form></div>
+<div id="app" hidden>
+<header><button id="back" hidden aria-label="Voltar">‹</button><h1 id="ttl">Mesas</h1><span class="dot" id="net" title="Conexão"></span><button class="lnk" id="sair">Sair</button></header>
+<main>
+ <section id="vMesas"><div class="chips" id="fil"></div><div class="grid" id="grid"></div></section>
+ <section id="vMesa" hidden></section>
+ <section id="vAdd" hidden><div class="chips" id="cats"></div><input id="q" type="search" placeholder="Pesquisar produto" style="margin-bottom:12px"><div id="plist"></div></section>
+</main>
+<div id="cartbar" hidden><button class="b p" id="openCart"></button></div>
+</div>
+<dialog id="optdlg"></dialog><dialog id="cartdlg"></dialog><div id="toast"></div>
+<script>
+const SB_URL='https://mijiqvekuwhvehzfygkt.supabase.co',SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pamlxdmVrdXdodmVoemZ5Z2t0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUzNzY1ODYsImV4cCI6MjExMDk1MjU4Nn0.pXt5zzdC5M08yRgtPsU6Q_ZhBkfjZ3q6f5-6v_fYlUw';
+const sb=window.supabase?supabase.createClient(SB_URL,SB_KEY):null;
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const brl=n=>(+n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+let D={mesas:[],ped:[],cats:[],prod:[],grp:[]},cur='',cart=[],catSel='todos',filSel='todas',view='mesas',od=null,rt;
+const tot=o=>o.itens.reduce((s,i)=>s+i.preco*i.qtd,0);
+const addTxt=a=>(a.qtd>1?a.qtd+'x ':'')+a.nome;
+const ordMesas=()=>D.mesas.slice().sort((a,b)=>String(a.numero).localeCompare(String(b.numero),'pt-BR',{numeric:true}));
+const pedDe=id=>D.ped.find(o=>o.mesa_id===id);
+const gruposDe=p=>(p.grupos||[]).map(id=>D.grp.find(g=>g.id===id)).filter(g=>g&&(g.itens||[]).length);
+const precoLbl=p=>(p.vars||[]).length?'a partir de '+brl(Math.min(...p.vars.map(v=>+v.preco))):brl(p.preco);
+function toast(t,err){const e=document.createElement('div');e.className='tt'+(err?' e':'');e.textContent=t;$('#toast').appendChild(e);setTimeout(()=>e.remove(),3500)}
+const net=ok=>$('#net').classList.toggle('off',!ok);
+
+/* dados */
+async function load(){
+  const q=t=>sb.from(t).select('*');
+  try{
+    const R=await Promise.all([q('pdv_mesas'),q('pdv_pedidos').eq('tipo','mesa').lt('status',3),q('pdv_categorias').order('ordem'),q('pdv_produtos'),q('pdv_grupos')]);
+    R.forEach(r=>{if(r.error)throw r.error});
+    D={mesas:R[0].data,ped:R[1].data,cats:R[2].data,prod:R[3].data,grp:R[4].data};net(true);render();
+  }catch(e){net(false)}
+}
+function recarrega(){clearTimeout(rt);rt=setTimeout(load,400)}
+function realtime(){
+  const ch=sb.channel('garcom');
+  ['pdv_pedidos','pdv_mesas','pdv_produtos'].forEach(t=>ch.on('postgres_changes',{event:'*',schema:'public',table:t},recarrega));
+  ch.subscribe(s=>{if(s==='SUBSCRIBED')recarrega();else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT')net(false)});
+  setInterval(recarrega,30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)recarrega()});addEventListener('online',recarrega);
+}
+
+/* telas */
+function render(){
+  $('#vMesas').hidden=view!=='mesas';$('#vMesa').hidden=view!=='mesa';$('#vAdd').hidden=view!=='add';$('#back').hidden=view==='mesas';
+  if(view==='mesas'){$('#ttl').textContent='Mesas';renderMesas()}
+  else if(view==='mesa')renderMesa();else renderAdd();
+  const n=cart.reduce((s,l)=>s+l.qtd,0);$('#cartbar').hidden=!n||view==='mesas';
+  if(n)$('#openCart').innerHTML=`<span>${n} ${n>1?'itens':'item'} · ${brl(cart.reduce((s,l)=>s+linha(l).preco*l.qtd,0))}</span><span>Revisar e enviar</span>`;
+}
+function renderMesas(){
+  $('#fil').innerHTML=[['todas','Todas'],['ocupadas','Ocupadas'],['livres','Livres']].map(([k,t])=>`<button class="chip${filSel===k?' on':''}" data-f="${k}">${t}</button>`).join('');
+  const l=ordMesas().filter(m=>filSel==='todas'||(filSel==='ocupadas'?m.status!=='livre':m.status==='livre'));
+  $('#grid').innerHTML=l.map(m=>{const o=pedDe(m.id);return `<button class="mesa ${m.status}" data-id="${m.id}"><b>Mesa ${esc(m.numero)}</b><span>${m.status==='livre'?'Livre':m.status==='conta'?'Conta pedida':'Ocupada'}</span>${o?`<em>${brl(tot(o))}</em>`:''}</button>`}).join('')
+    ||`<div class="vazio" style="grid-column:1/-1">${D.mesas.length?'Nenhuma mesa neste filtro.':'Nenhuma mesa cadastrada. Peça ao caixa para criar as mesas.'}</div>`;
+}
+function renderMesa(){
+  const m=D.mesas.find(x=>x.id===cur);if(!m){view='mesas';render();return}
+  const o=pedDe(cur);$('#ttl').textContent='Mesa '+m.numero;
+  $('#vMesa').innerHTML=(o?`<div class="card">${o.itens.map((i,ix)=>`<div class="it"><div><b>${i.qtd}× ${esc(i.nome)}</b>${(i.adds||[]).length?`<small>+ ${esc(i.adds.map(addTxt).join(', '))}</small>`:''}${i.obs?`<small>Obs: ${esc(i.obs)}</small>`:''}</div><span class="pr">${brl(i.preco*i.qtd)}</span><button class="x" data-rm="${ix}" aria-label="Remover ${esc(i.nome)}">×</button></div>`).join('')}<div class="tot"><span>Total da mesa</span><b>${brl(tot(o))}</b></div></div>`
+    :'<div class="vazio">Mesa livre. Lance os itens para abrir a mesa.</div>')
+    +(m.status==='conta'?'<p class="note">A conta desta mesa já foi pedida ao caixa.</p>':'')
+    +`<button class="b p big" id="addIt">${o?'Adicionar itens':'Abrir mesa e lançar itens'}</button>`;
+}
+function renderAdd(){
+  $('#ttl').textContent='Mesa '+((D.mesas.find(x=>x.id===cur)||{}).numero||'');
+  $('#cats').innerHTML=[['todos','Todos'],...D.cats.map(c=>[c.id,c.nome])].map(([k,t])=>`<button class="chip${catSel===k?' on':''}" data-c="${k}">${esc(t)}</button>`).join('');
+  const t=$('#q').value.trim().toLowerCase(),l=D.prod.filter(p=>(catSel==='todos'||p.cat_id===catSel)&&(!t||p.nome.toLowerCase().includes(t))).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+  $('#plist').innerHTML=l.map(p=>{const c=(D.cats.find(x=>x.id===p.cat_id)||{}).nome||'';return `<button class="prow${p.disp?'':' off'}" data-p="${p.id}"${p.disp?'':' disabled'}><div><b>${esc(p.nome)}</b><small>${esc(c)}</small></div><span class="pr">${p.disp?precoLbl(p):'Indisponível'}</span>${p.disp?'<span class="add">+</span>':''}</button>`}).join('')||'<div class="vazio">Nenhum produto encontrado.</div>';
+}
+
+/* itens do carrinho */
+function linha(l){
+  const p=D.prod.find(x=>x.id===l.pid)||{nome:'?',preco:0,vars:[]},v=(p.vars||[]).find(x=>x.id===l.varId);
+  const todos=D.grp.flatMap(g=>(g.itens||[]).map(a=>({...a,grupo:g.nome})));
+  const adds=Object.entries(l.adds).filter(([,n])=>n>0).map(([id,n])=>{const a=todos.find(x=>x.id===id);return a&&{nome:a.nome,preco:+a.preco,qtd:n,grupo:a.grupo}}).filter(Boolean);
+  const base=(p.vars||[]).length?(v?+v.preco:0):+p.preco;
+  return{nome:p.nome+(v?' ('+v.nome+')':''),preco:base+adds.reduce((s,a)=>s+a.preco*a.qtd,0),qtd:l.qtd,adds,obs:(l.obs||'').trim()};
+}
+function poe(l){
+  const k=JSON.stringify([l.pid,l.varId,l.adds,l.obs]),e=cart.find(x=>JSON.stringify([x.pid,x.varId,x.adds,x.obs])===k);
+  if(e)e.qtd+=l.qtd;else cart.push(l);render();
+}
+function abreOpt(p){
+  od={p,varId:'',adds:{},obs:'',qtd:1};desenhaOpt();$('#optdlg').showModal();
+}
+function desenhaOpt(){
+  const{p}=od,gs=gruposDe(p),obrig=(p.vars||[]).length&&!od.varId;
+  const un=(()=>{const v=(p.vars||[]).find(x=>x.id===od.varId);const base=(p.vars||[]).length?(v?+v.preco:0):+p.preco;
+    return base+gs.reduce((s,g)=>s+g.itens.reduce((t,a)=>t+(od.adds[a.id]||0)*a.preco,0),0)})();
+  $('#optdlg').innerHTML=`<div class="dh"><h2>${esc(p.nome)}</h2></div><div class="db">
+   ${(p.vars||[]).length?`<div class="gt">Escolha uma opção <span style="color:var(--bad)">(obrigatório)</span></div>${p.vars.map(v=>`<div class="opt v${od.varId===v.id?' on':''}" data-v="${v.id}"><i class="rd"></i><span>${esc(v.nome)}</span><small>${brl(v.preco)}</small></div>`).join('')}`:''}
+   ${gs.map(g=>`<div class="gt">${esc(g.nome)}</div>${g.itens.map(a=>`<div class="opt"><span>${esc(a.nome)}</span><small>+ ${brl(a.preco)}</small><div class="st"><button data-a="${a.id}" data-d="-1">−</button><b>${od.adds[a.id]||0}</b><button data-a="${a.id}" data-d="1">+</button></div></div>`).join('')}`).join('')}
+   <label for="oobs">Observação</label><input id="oobs" value="${esc(od.obs)}" placeholder="Ex.: sem cebola"></div>
+   <div class="df"><div class="st"><button data-q="-1">−</button><b>${od.qtd}</b><button data-q="1">+</button></div><button class="b p" data-ok ${obrig?'disabled':''}>Adicionar · ${brl(un*od.qtd)}</button></div>`;
+}
+$('#optdlg').onclick=e=>{
+  const v=e.target.closest('[data-v]'),a=e.target.closest('[data-a]'),q=e.target.closest('[data-q]');
+  if(v){od.obs=$('#oobs').value;od.varId=v.dataset.v;desenhaOpt()}
+  else if(a){od.obs=$('#oobs').value;const id=a.dataset.a;od.adds[id]=Math.max(0,(od.adds[id]||0)+ +a.dataset.d);desenhaOpt()}
+  else if(q){od.obs=$('#oobs').value;od.qtd=Math.max(1,od.qtd+ +q.dataset.q);desenhaOpt()}
+  else if(e.target.closest('[data-ok]')){poe({pid:od.p.id,varId:od.varId,adds:Object.fromEntries(Object.entries(od.adds).filter(([,n])=>n>0)),obs:$('#oobs').value.trim(),qtd:od.qtd});$('#optdlg').close();toast('Adicionado')}
+  else if(e.target===$('#optdlg'))$('#optdlg').close();
+};
+function desenhaCart(){
+  const livre=!pedDe(cur),t=cart.reduce((s,l)=>s+linha(l).preco*l.qtd,0);
+  $('#cartdlg').innerHTML=`<div class="dh"><h2>Itens para a Mesa ${esc((D.mesas.find(x=>x.id===cur)||{}).numero||'')}</h2></div><div class="db">
+   ${cart.map((l,i)=>{const x=linha(l);return `<div class="opt"><span><b>${esc(x.nome)}</b>${x.adds.length?`<small style="display:block;color:var(--mut)">+ ${esc(x.adds.map(addTxt).join(', '))}</small>`:''}${x.obs?`<small style="display:block;color:var(--mut)">Obs: ${esc(x.obs)}</small>`:''}</span><div class="st"><button data-i="${i}" data-d="-1">−</button><b>${l.qtd}</b><button data-i="${i}" data-d="1">+</button></div></div>`}).join('')||'<div class="vazio">Nada no pedido.</div>'}
+   ${livre?'<label for="gobs">Observação da mesa (opcional)</label><input id="gobs">':''}
+   <div class="tot"><span>Total a enviar</span><b>${brl(t)}</b></div></div>
+   <div class="df"><button class="b" data-x>Voltar</button><button class="b p" data-send ${cart.length?'':'disabled'}>Enviar para a cozinha</button></div>`;
+}
+$('#openCart').onclick=()=>{desenhaCart();$('#cartdlg').showModal()};
+$('#cartdlg').onclick=async e=>{
+  const s=e.target.closest('[data-i]');
+  if(s){const l=cart[+s.dataset.i];l.qtd+= +s.dataset.d;if(l.qtd<1)cart.splice(+s.dataset.i,1);render();desenhaCart();if(!cart.length)$('#cartdlg').close();return}
+  if(e.target.closest('[data-x]')||e.target===$('#cartdlg')){$('#cartdlg').close();return}
+  if(e.target.closest('[data-send]')){
+    const b=e.target.closest('[data-send]');b.disabled=true;
+    const{error}=await sb.rpc('pdv_mesa_lancar',{p_mesa:cur,p_itens:cart.map(linha),p_obs:($('#gobs')||{}).value||null});
+    if(error){toast('Não enviou: '+error.message,true);b.disabled=false;return}
+    cart=[];$('#cartdlg').close();view='mesa';await load();toast('Enviado para a cozinha ✓');
+  }
+};
+
+/* eventos */
+$('#fil').onclick=e=>{const b=e.target.closest('[data-f]');if(b){filSel=b.dataset.f;renderMesas()}};
+$('#grid').onclick=e=>{const b=e.target.closest('.mesa');if(!b)return;if(cur!==b.dataset.id)cart=[];cur=b.dataset.id;view='mesa';render();scrollTo(0,0)};
+$('#back').onclick=()=>{view=view==='add'?'mesa':'mesas';render()};
+$('#vMesa').onclick=async e=>{
+  if(e.target.closest('#addIt')){view='add';catSel='todos';$('#q').value='';render();scrollTo(0,0);return}
+  const r=e.target.closest('[data-rm]');if(!r)return;
+  const o=pedDe(cur),i=o&&o.itens[+r.dataset.rm];if(!i||!confirm('Remover '+i.qtd+'× '+i.nome+' da mesa?'))return;
+  const{error}=await sb.rpc('pdv_mesa_remover_item',{p_pedido:o.id,p_idx:+r.dataset.rm});
+  if(error){toast('Não removeu: '+error.message,true);return}
+  toast('Item removido');await load();
+};
+$('#cats').onclick=e=>{const b=e.target.closest('[data-c]');if(b){catSel=b.dataset.c;renderAdd()}};
+$('#q').oninput=renderAdd;
+$('#plist').onclick=e=>{const b=e.target.closest('[data-p]');if(!b)return;const p=D.prod.find(x=>x.id===b.dataset.p);if(!p||!p.disp)return;
+  if((p.vars||[]).length||gruposDe(p).length)abreOpt(p);else{poe({pid:p.id,varId:'',adds:{},obs:'',qtd:1});toast(p.nome+' adicionado')}};
+
+/* login */
+function mostraLogin(m){$('#login').hidden=false;$('#app').hidden=true;$('#lerr').textContent=m||''}
+async function entra(){
+  try{
+    const{data:papel,error}=await sb.rpc('pdv_papel');if(error)throw error;
+    if(!papel){await sb.auth.signOut();mostraLogin('Esta conta ainda não foi liberada como garçom. Fale com o caixa.');return}
+    $('#login').hidden=true;$('#app').hidden=false;await load();realtime();
+  }catch(e){mostraLogin('Não consegui entrar: '+(e.message||e))}
+}
+$('#lf').onsubmit=async e=>{
+  e.preventDefault();if(!sb)return;$('#lb').disabled=true;
+  const{error}=await sb.auth.signInWithPassword({email:$('#le').value.trim(),password:$('#ls').value});
+  $('#lb').disabled=false;if(error){$('#lerr').textContent=/invalid/i.test(error.message)?'E-mail ou senha incorretos.':error.message;return}
+  $('#ls').value='';entra();
+};
+$('#sair').onclick=async()=>{await sb.auth.signOut();location.reload()};
+(async()=>{if(!sb){mostraLogin('Sem internet: conecte-se ao Wi-Fi e recarregue.');return}
+  const{data:{session}}=await sb.auth.getSession();session?entra():mostraLogin()})();
+</script>
+</body>
+</html>
