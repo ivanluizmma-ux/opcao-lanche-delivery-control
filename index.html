@@ -337,7 +337,7 @@ else{
  /* ----- interface ----- */
  function buildUI(){
   document.getElementById('root').innerHTML=`<div id="app"><header><b>Opção Lanche · Delivery Control</b><span>Manaus${useGeo?'':' · ⚠ chave Geoapify não configurada (mapa de teste)'}</span><div class="sp"></div>
-  <button id="bLoja">Endereço da loja</button><button id="bDrv">Entregadores</button><button class="p" id="bNew" style="border-color:#fff">+ Novo pedido</button><button id="bOut">Sair</button></header>
+  <button id="bLoja">Endereço da loja</button><button id="bOut">Sair</button></header>
   <aside><div class="tabs"><button data-t="pedidos">Pedidos</button><button data-t="rotas">Rotas</button></div><div class="pane" id="pane"></div><div class="det" id="det" hidden></div></aside>
   <div id="mapwrap"><div id="map"></div><div class="bar" id="bar"></div><div class="leg" id="leg"></div>
   <div class="leg" id="lojaBox" hidden style="left:60px;right:auto;top:50px;bottom:auto;width:340px;font-size:13px"><b>Endereço da loja</b>
@@ -425,7 +425,7 @@ else{
    ${['confirmada','andamento'].includes(r.status)?`<button class="p" data-fn="${esc(r.id)}">Finalizar</button>`:''}
    <button data-vw="${esc(r.id)}">Ver no mapa</button></div>
    ${ed&&!dra?'<div class="warn">Modo edição: as mudanças valem na hora, inclusive no app do entregador.</div>':''}
-   ${url&&['confirmada','andamento'].includes(r.status)?`<div style="margin-top:6px"><small>Link do entregador (use o botão "Entregadores" para copiar e enviar):</small><br><input readonly style="width:100%" value="${esc(url)}" onclick="this.select()"></div>`:''}</div>`;
+   ${url&&['confirmada','andamento'].includes(r.status)?`<div style="margin-top:6px"><small>Link do entregador (copie e envie pelo WhatsApp):</small><br><input readonly style="width:100%" value="${esc(url)}" onclick="this.select()"></div>`:''}</div>`;
  }
  function cancelledCard(r){
   return `<div class="rt" style="background:#f8fafb"><h4><span>Rota ${esc(r.id)} · ${esc(drvName(r.driver))}</span><span class="bd" style="background:#b91c1c">Cancelada</span></h4>
@@ -480,22 +480,6 @@ else{
   toast(found?'Pedido salvo. Confira o ponto no mapa.':'Pedido salvo, mas o endereço não foi localizado. Use "Marcar no mapa".',!found);
  }
 
- /* ----- entregadores ----- */
- function openDrivers(){
-  const base=location.href.split('#')[0];
-  modal(`<h3>Entregadores</h3>${DRIVERS.map(d=>`<div class="rt"><b>${esc(d.nome)}</b>${d.tel?' · '+esc(d.tel):''} ${d.ativo?'':'<span class="bd" style="background:#9ca3af">Desativado</span>'}
-   <input readonly value="${esc(base+'#entregador='+d.token)}" style="width:100%;margin-top:4px" onclick="this.select()">
-   <div class="row"><button data-dcopy="${esc(d.id)}">Copiar link</button><button data-dtog="${esc(d.id)}">${d.ativo?'Desativar':'Ativar'}</button><button class="d" data-dnew="${esc(d.id)}">Gerar novo link</button></div></div>`).join('')||'<div class="empty">Nenhum entregador cadastrado.</div>'}
-   <h4 style="margin:10px 0 4px">Novo entregador</h4>
-   <div class="row"><input id="dNome" placeholder="Nome" style="flex:1"><input id="dTel" placeholder="Telefone (opcional)" style="flex:1"><button class="p" id="dAdd">Adicionar</button></div>
-   <div class="row"><button id="fCancel">Fechar</button></div>`);
- }
- const newToken=()=>{const a=new Uint8Array(24);crypto.getRandomValues(a);return Array.from(a,x=>x.toString(16).padStart(2,'0')).join('')};
- async function drvOp(fn,okMsg){
-  const {error}=await fn();if(error){toast('Não foi possível salvar: '+error.message,true);return}
-  await loadAll();render();openDrivers();if(okMsg)toast(okMsg);
- }
-
  /* ----- eventos ----- */
  document.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.target.id==='lgEmail'||e.target.id==='lgPass'))doLogin()});
  document.addEventListener('click',e=>{
@@ -504,15 +488,6 @@ else{
   if(t.id==='bOut'){sb.auth.signOut().then(()=>{showLogin()});return}
   if(t.id==='fCancel'){closeModal();return}
   if(t.id==='fSave'){saveOrder(t.dataset.id||null);return}
-  if(t.id==='bNew'){openOrderForm();return}
-  if(t.id==='bDrv'){openDrivers();return}
-  if(t.id==='dAdd'){const n=document.getElementById('dNome').value.trim();if(!n)return toast('Digite o nome do entregador.',true);
-   drvOp(()=>sb.from('drivers').insert({id:rid('d'),nome:n,tel:document.getElementById('dTel').value.trim()||null}),'Entregador adicionado.');return}
-  if(t.dataset.dcopy){const d=DRIVERS.find(x=>x.id===t.dataset.dcopy);const link=location.href.split('#')[0]+'#entregador='+d.token;
-   (navigator.clipboard?navigator.clipboard.writeText(link):Promise.reject()).then(()=>toast('Link copiado.')).catch(()=>toast('Não foi possível copiar. Selecione o link e copie manualmente.',true));return}
-  if(t.dataset.dtog){const d=DRIVERS.find(x=>x.id===t.dataset.dtog);drvOp(()=>sb.from('drivers').update({ativo:!d.ativo}).eq('id',d.id));return}
-  if(t.dataset.dnew){if(!confirm('Gerar um novo link? O link antigo deixa de funcionar e o entregador precisa receber o novo.'))return;
-   drvOp(()=>sb.from('drivers').update({token:newToken()}).eq('id',t.dataset.dnew),'Novo link gerado.');return}
   if(t.id==='bLoja'){openLoja();return}
   if(t.id==='lojaFecha'){document.getElementById('lojaBox').hidden=true;return}
   if(t.id==='lojaBusca'){buscaLoja();return}
