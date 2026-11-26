@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('opcao_tema')||'dark'}catch(e){document.documentElement.dataset.theme='dark'}</script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Opção Lanche · Pedidos</title>
 <style>
@@ -209,7 +210,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="i-mesas" viewBox="0 0 24 24"><path d="M3 8h18M5 8v12M19 8v12M3 8l1.5-4h15L21 8"/></symbol><symbol id="i-pedidos" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></symbol><symbol id="i-novo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></symbol><symbol id="i-clientes" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.5-3.5 3-5.5 6.5-5.5s6 2 6.5 5.5"/><path d="M16 4.8a3.5 3.5 0 0 1 0 6.4M18 14.8c2 .7 3.2 2.4 3.5 5.2"/></symbol><symbol id="i-cardapio" viewBox="0 0 24 24"><path d="M6 3v7a2 2 0 0 0 2 2v9M10 3v7a2 2 0 0 1-2 2M8 3v5"/><path d="M18 21V3c-2.6 1.6-4 4.6-4 8h4"/></symbol><symbol id="i-bairros" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol><symbol id="i-impressora" viewBox="0 0 24 24"><path d="M7 9V3h10v6"/><rect x="4" y="9" width="16" height="8" rx="2"/><path d="M7 14h10v7H7z"/></symbol><symbol id="i-mensagens" viewBox="0 0 24 24"><path d="M21 12a8.5 8.5 0 0 1-12.3 7.6L3 21l1.5-5.4A8.5 8.5 0 1 1 21 12z"/></symbol><symbol id="i-backup" viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol><symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol><symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol><symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol><symbol id="i-bike" viewBox="0 0 24 24"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></symbol></svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="i-sol" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/></symbol><symbol id="i-lua" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol><symbol id="i-mesas" viewBox="0 0 24 24"><path d="M3 8h18M5 8v12M19 8v12M3 8l1.5-4h15L21 8"/></symbol><symbol id="i-pedidos" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></symbol><symbol id="i-novo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></symbol><symbol id="i-clientes" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.5-3.5 3-5.5 6.5-5.5s6 2 6.5 5.5"/><path d="M16 4.8a3.5 3.5 0 0 1 0 6.4M18 14.8c2 .7 3.2 2.4 3.5 5.2"/></symbol><symbol id="i-cardapio" viewBox="0 0 24 24"><path d="M6 3v7a2 2 0 0 0 2 2v9M10 3v7a2 2 0 0 1-2 2M8 3v5"/><path d="M18 21V3c-2.6 1.6-4 4.6-4 8h4"/></symbol><symbol id="i-bairros" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol><symbol id="i-impressora" viewBox="0 0 24 24"><path d="M7 9V3h10v6"/><rect x="4" y="9" width="16" height="8" rx="2"/><path d="M7 14h10v7H7z"/></symbol><symbol id="i-mensagens" viewBox="0 0 24 24"><path d="M21 12a8.5 8.5 0 0 1-12.3 7.6L3 21l1.5-5.4A8.5 8.5 0 1 1 21 12z"/></symbol><symbol id="i-backup" viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol><symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol><symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol><symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol><symbol id="i-bike" viewBox="0 0 24 24"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></symbol></svg>
 <aside id="side">
   <button class="brand" id="logoBtn" type="button" title="Clique para trocar a logo" aria-label="Logo do Opção Lanche (clique para trocar)"><img id="logoImg" alt="Opção Lanche" hidden><span class="wm" id="logoTxt">Opção <b>Lanche</b></span></button>
   <input type="file" id="logoFile" accept="image/*" hidden>
@@ -231,7 +232,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 </aside>
 <header>
   <div><h1 id="htitle">Pedidos</h1><span id="hsub"></span></div>
-  <div class="hr"><span id="clock"></span><span id="date"></span><span class="cx"><i class="dot"></i>Caixa do dia · <span id="resumo"></span></span></div>
+  <div class="hr"><button class="b ib tema" id="tema" type="button" title="Modo claro/escuro" aria-label="Alternar modo claro e escuro"><svg class="ic i-sol"><use href="#i-sol"/></svg><svg class="ic i-lua"><use href="#i-lua"/></svg></button><span id="clock"></span><span id="date"></span><span class="cx"><i class="dot"></i>Caixa do dia · <span id="resumo"></span></span></div>
 </header>
 <main>
 
@@ -313,7 +314,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
     <p><small class="h">Crie as categorias do cardápio (por exemplo, Combos, Sanduíches, Sucos) e depois escolha a categoria de cada produto na aba Produtos. No pedido, elas viram abas para achar os produtos mais rápido.</small></p>
     <div class="box">
       <div id="cedit"></div>
-      <div class="acoes"><button class="b p" id="addCat">Nova categoria</button></div>
+      <div class="acoes"><button class="b p" id="addCat">Nova categoria</button><button class="b" id="saveCat">Salvar categorias</button></div>
     </div>
   </div>
   <div id="sub-opcionais" hidden>
@@ -373,6 +374,15 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
     <p><small class="h">O app não envia sozinho: ele abre a conversa com o cliente já com o texto pronto, e você só toca em enviar. Linhas que tiverem [chave pix] só aparecem quando o pagamento do pedido for Pix.</small></p>
   </div>
   <div id="msgedit"></div>
+  <h2 style="margin-top:24px">Loja online (site de pedidos)</h2>
+  <div class="box"><div class="g">
+    <div class="full"><label style="display:flex;gap:8px;align-items:center;color:var(--ink)"><input type="checkbox" id="lo_aberta" style="width:auto"> Loja aberta para pedidos no site</label></div>
+    <div><label for="lo_nome">Nome da loja</label><input id="lo_nome"></div>
+    <div><label for="lo_zap">WhatsApp da loja (com DDD)</label><input id="lo_zap" inputmode="tel" placeholder="92 99999-9999"></div>
+    <div><label for="lo_pix">Chave Pix mostrada ao cliente</label><input id="lo_pix"></div>
+    <div class="full"><label for="lo_aviso">Aviso no topo do site (opcional)</label><input id="lo_aviso" placeholder="Ex.: Hoje só entregamos até 22h"></div>
+  </div><div class="acoes"><button class="b p" id="lo_salvar">Salvar loja online</button></div>
+  <p><small class="h">O botão de WhatsApp do site usa esse número. Nas mensagens, escreva [link do pedido] para enviar ao cliente o link de acompanhamento.</small></p></div>
 </section>
 
 <section id="backup" hidden>
@@ -456,6 +466,7 @@ function tab(t){
   setHead(t);{const s=$('#'+t);s.classList.remove('vin');void s.offsetWidth;s.classList.add('vin')}
   if(t==='pedidos')renderLista();
   if(t==='mesas')renderMesas();
+  if(t==='mensagens')carregaLoja();
   if(t==='novo'){renderPicker();renderBairroSelect()}
   if(t==='clientes')renderClientes();
   if(t==='cardapio')sub($('#subtabs .on').dataset.s);
@@ -504,7 +515,7 @@ function renderPicker(){
   const l=db.menu.filter(m=>(catSel==='todos'||(catSel==='sem'?semCat(m):m.cat===catSel))&&(!q||m.nome.toLowerCase().includes(q))).sort((a,b)=>ord(a)-ord(b));
   const np=Math.max(1,Math.ceil(l.length/PP));if(pg>=np)pg=np-1;if(pg<0)pg=0;
   const btn=m=>{const off=m.disp===false,cn=(db.cats.find(c=>c.id===m.cat)||{}).nome||'Sem categoria';
-    return `<button class="prod${off?' off':''}" data-id="${m.id}"${off?' disabled':''}><span class="pn">${esc(m.nome)}</span><span class="pc">${esc(cn)}</span><span class="pf"><b class="pr">${off?'Indisponível':precoLabel(m)}</b><span class="add">${I('plus')}</span></span></button>`};
+    return `<button class="prod${off?' off':''}" data-id="${m.id}"${off?' disabled':''}>${m.imagem?`<img class="pth" src="${esc(m.imagem)}" alt="" loading="lazy">`:''}<span class="pn">${esc(m.nome)}</span><span class="pc">${esc(cn)}</span><span class="pf"><b class="pr">${off?'Indisponível':precoLabel(m)}</b><span class="add">${I('plus')}</span></span></button>`};
   $('#picker').innerHTML=l.length?l.slice(pg*PP,pg*PP+PP).map(btn).join(''):`<div class="vazio">${db.menu.length?'Nenhum produto encontrado.':'Cadastre produtos na aba Cardápio.'}</div>`;
   $('#pager').innerHTML=np>1?`<button class="b" data-p="-1"${pg?'':' disabled'}>Anterior</button><span>Página ${pg+1} de ${np}</span><button class="b" data-p="1"${pg<np-1?'':' disabled'}>Próxima</button>`:'';
   renderCart();
@@ -799,7 +810,7 @@ function renderMenu(){
   $('#medit').innerHTML=lm.length?'<div class="mh"><span>Produto</span><span>Preço</span><span>Ativo</span><span></span></div>'+lm.slice(mpg*PM,mpg*PM+PM).map(m=>{
     const vs=m.vars||[],on=m.disp!==false,cn=(db.cats.find(c=>c.id===m.cat)||{}).nome||'Sem categoria';
     const h=cn!==last?`<div class="mc">${esc(cn)}</div>`:'';last=cn;
-    return h+`<div class="mr${on?'':' off'}" data-id="${m.id}"><span class="mn">${esc(m.nome)}</span>
+    return h+`<div class="mr${on?'':' off'}" data-id="${m.id}"><span class="mn">${m.imagem?`<img class="mth" src="${esc(m.imagem)}" alt="" loading="lazy">`:''}<span>${esc(m.nome)}</span></span>
       <span class="mp">${vs.length?`<small>a partir de ${brl(Math.min(...vs.map(v=>v.preco)))}</small>`:`<small>R$</small><input value="${String(m.preco).replace('.',',')}" data-f="preco" inputmode="decimal" aria-label="Preço de ${esc(m.nome)}">`}</span>
       <span><button type="button" class="sw${on?' on':''}" role="switch" aria-checked="${on}" data-a="disp" aria-label="Disponível: ${esc(m.nome)}"></button></span>
       <span><button type="button" class="b" data-a="edit" aria-label="Editar ${esc(m.nome)}">Editar</button></span></div>`}).join('')
@@ -892,7 +903,9 @@ $('#addItem').onclick=()=>{
 /* categorias do cardápio */
 function renderCats(){
   $('#cedit').innerHTML=db.cats.length?db.cats.map((c,i)=>`<div class="crow" data-id="${c.id}">
+    ${c.imagem?`<img class="cth" src="${esc(c.imagem)}" alt="Foto da categoria" data-a="cdelfoto" title="Clique para remover a foto">`:'<span class="cth">Foto</span>'}
     <input value="${esc(c.nome)}" data-f="cnome" aria-label="Nome da categoria do cardápio">
+    <label class="b" title="Escolher foto da categoria">${c.imagem?'Trocar foto':'Adicionar foto'}<input type="file" accept="image/*" data-f="cfoto" hidden></label>
     <button class="b" data-a="cup" aria-label="Subir ${esc(c.nome)}"${i?'':' disabled'}>▲</button>
     <button class="b" data-a="cdown" aria-label="Descer ${esc(c.nome)}"${i<db.cats.length-1?'':' disabled'}>▼</button>
     <button class="b d" data-a="cdel" aria-label="Remover ${esc(c.nome)}">Remover</button></div>`).join('')
@@ -900,9 +913,12 @@ function renderCats(){
 }
 $('#cedit').onchange=e=>{
   const c=db.cats.find(x=>x.id===e.target.closest('.crow').dataset.id);
+  if(e.target.dataset.f==='cfoto'){subirFotoCat(c,e.target.files[0]);e.target.value='';return}
   c.nome=e.target.value.trim()||c.nome;e.target.value=c.nome;save();
 };
 $('#cedit').onclick=async e=>{
+  const im=e.target.closest('img[data-a="cdelfoto"]');
+  if(im){const c=db.cats.find(x=>x.id===im.closest('.crow').dataset.id);if(c&&await confirma('Remover a foto da categoria “'+c.nome+'”?'))tiraFotoCat(c);return}
   const b=e.target.closest('button');if(!b||b.disabled)return;
   const id=b.closest('.crow').dataset.id,i=db.cats.findIndex(x=>x.id===id),a=b.dataset.a;
   if(a==='cup'||a==='cdown'){
@@ -1245,7 +1261,7 @@ function resumoPedido(o){
 function montaMsg(o,texto,pixTeste){
   const pix=String(pixTeste??db.cfg.pix??'').trim(),ehPix=o.pag==='Pix'&&!!pix;
   const val={'nome do cliente':o.cliente||'','nome':o.cliente||'','resumo do pedido':resumoPedido(o),
-    'numero do pedido':'#'+o.num,'total':brl(totalPedido(o)),'endereco':o.end||'','bairro':o.bairro||'','pagamento':o.pag,'chave pix':pix};
+    'numero do pedido':'#'+o.num,'total':brl(totalPedido(o)),'endereco':o.end||'','bairro':o.bairro||'','pagamento':o.pag,'chave pix':pix,'link do pedido':SITE_PEDIDO+'#acompanhar='+o.id};
   return texto.split('\n')
     .filter(l=>!/\[\s*chave pix\s*\]/i.test(l)||ehPix)
     .map(l=>l.replace(/\[([^\]]+)\]/g,(m,k)=>{const x=norm(k);return Object.prototype.hasOwnProperty.call(val,x)?val[x]:m}))
@@ -1365,7 +1381,7 @@ function cardCli(c){
   </div><div class="acoes"><button class="b d" data-a="del">Remover cliente</button></div></div>`;
 }
 let usub='clientes',upg=0;const UP=20;
-const LINK_ENTREGA='https://ivanluizmma-ux.github.io/opcao-lanche-delivery-control/#entregador';
+const LINK_ENTREGA='https://ivanluizmma-ux.github.io/opcao-lanche-delivery-control/entregador.html';
 const listaUsu=()=>usub==='clientes'?db.clientes:usub==='garcons'?CONTAS.filter(x=>x.papel==='garcom').map(x=>({id:x.user_id,nome:x.nome||'',tel:x.tel||'',email:x.email})):db.motoboys.filter(m=>m.ativo!==false);
 function renderClientes(){
   $('#autocli').checked=!!db.cfg.autoCli;
@@ -1461,7 +1477,7 @@ const SB_URL='https://mijiqvekuwhvehzfygkt.supabase.co',SB_KEY='eyJhbGciOiJIUzI1
 const sb=window.supabase?supabase.createClient(SB_URL,SB_KEY):null;
 const isU=s=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s||'');
 const TB={
-  cats:{t:'pdv_categorias',to:(c,i)=>({id:c.id,nome:c.nome,ordem:i}),from:r=>({id:r.id,nome:r.nome})},
+  cats:{t:'pdv_categorias',to:(c,i)=>({id:c.id,nome:c.nome,ordem:i,imagem:c.imagem||null}),from:r=>({id:r.id,nome:r.nome,imagem:r.imagem||''})},
   grupos:{t:'pdv_grupos',to:g=>({id:g.id,nome:g.nome,itens:g.itens||[]}),from:r=>({id:r.id,nome:r.nome,itens:r.itens||[]})},
   bairros:{t:'pdv_bairros',to:b=>({id:b.id,nome:b.nome,taxa:+b.taxa||0}),from:r=>({id:r.id,nome:r.nome,taxa:+r.taxa||0})},
   menu:{t:'pdv_produtos',to:m=>({id:m.id,nome:m.nome,preco:+m.preco||0,cat_id:isU(m.cat)?m.cat:null,disp:m.disp!==false,imagem:m.imagem||null,vars:m.vars||[],grupos:(m.grupos||[]).filter(isU)}),
@@ -1482,7 +1498,8 @@ const TB={
 const ORDEM=['cats','grupos','bairros','menu','clientes','mesas','motoboys','orders'];
 let snap={},cloudOn=false,busy=false,again=false,pend=false,tmSave,LOCAL0={};
 const snapSet=(k,x)=>{(snap[k]=snap[k]||new Map()).set(x.id,TB[k].to(x,db[k].indexOf(x)))};
-function setSync(ok){$('#sdot').style.background=ok?'':'var(--bad)';$('#stxt').textContent=ok?'Conectado à nuvem':'Sem conexão';$('#sinfo').textContent=ok?'Dados sincronizados':'Tentando de novo…'}
+let syncOk=true;
+function setSync(ok){syncOk=ok;$('#sdot').style.background=ok?'':'var(--bad)';$('#stxt').textContent=ok?'Conectado à nuvem':'Sem conexão';$('#sinfo').textContent=ok?'Dados sincronizados':'Tentando de novo…'}
 function notif(t){let c=$('#toasts');if(!c){c=document.createElement('div');c.id='toasts';document.body.appendChild(c)}const e=document.createElement('div');e.className='toast';e.innerHTML='<span>'+esc(t)+'</span>';c.appendChild(e);setTimeout(()=>e.remove(),8000)}
 function bip(){try{const a=new(window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.frequency.value=880;g.gain.setValueAtTime(.15,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.5);o.start();o.stop(a.currentTime+.5)}catch(e){}}
 
@@ -1680,6 +1697,34 @@ async function contaApi(body){
   if(data&&data.erro)throw new Error(data.erro);return data;
 }
 async function flushCloud(){clearTimeout(tmSave);if(pend||!busy)await pushCloud();for(let i=0;i<80&&busy;i++)await new Promise(r=>setTimeout(r,100))}
+
+const SITE_PEDIDO='https://ivanluizmma-ux.github.io/opcao-lanche-delivery-control/pedido.html';
+async function subirFotoCat(c,file){
+  if(!file)return;
+  try{
+    const blob=await fotoParaBlob(file),path='cat-'+c.id+'-'+Date.now()+'.jpg';
+    const{error}=await sb.storage.from('cardapio').upload(path,blob,{contentType:'image/jpeg',cacheControl:'31536000'});if(error)throw error;
+    const velha=fotoPath(c.imagem);c.imagem=sb.storage.from('cardapio').getPublicUrl(path).data.publicUrl;
+    save();renderCats();if(velha)sb.storage.from('cardapio').remove([velha]);
+  }catch(e){aviso('Não consegui enviar a foto: '+(e.message||e)+'. Confira se o SQL v3 foi executado.')}
+}
+function tiraFotoCat(c){const velha=fotoPath(c.imagem);c.imagem='';save();renderCats();if(velha)sb.storage.from('cardapio').remove([velha])}
+$('#saveCat').onclick=async()=>{
+  const a=document.activeElement;if(a&&a.blur)a.blur();save();await flushCloud();
+  notif(syncOk?'Categorias salvas ✓':'Sem conexão: as alterações serão enviadas assim que voltar.');
+};
+/* modo claro / escuro (a escolha vale para todos os apps neste aparelho) */
+function toggleTema(){const t=document.documentElement.dataset.theme==='light'?'dark':'light';document.documentElement.dataset.theme=t;try{localStorage.setItem('opcao_tema',t)}catch(e){}}
+$('#tema').onclick=toggleTema;
+/* loja online: dados que o site de pedidos lê */
+async function carregaLoja(){
+  const r=await sb.from('pdv_config').select('*'),m=Object.fromEntries((r.data||[]).map(x=>[x.chave,x.valor]));
+  $('#lo_aberta').checked=m.loja_aberta!==false&&m.loja_aberta!=='false';$('#lo_nome').value=m.nome_loja||'';$('#lo_zap').value=m.whatsapp||'';$('#lo_pix').value=m.pix||'';$('#lo_aviso').value=m.aviso||'';
+}
+$('#lo_salvar').onclick=async()=>{
+  const rows=[{chave:'loja_aberta',valor:$('#lo_aberta').checked},{chave:'nome_loja',valor:$('#lo_nome').value.trim()||'Opção Lanche'},{chave:'whatsapp',valor:$('#lo_zap').value.replace(/\D/g,'')},{chave:'pix',valor:$('#lo_pix').value.trim()},{chave:'aviso',valor:$('#lo_aviso').value.trim()}];
+  const{error}=await sb.from('pdv_config').upsert(rows);notif(error?'Não consegui salvar: '+error.message:'Loja online atualizada ✓');
+};
 
 load();migra();mostraLogo();relogio();setInterval(relogio,15000);setHead('pedidos');renderResumo();renderLista();boot();
 </script>
