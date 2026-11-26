@@ -8,21 +8,23 @@
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
 <meta name="theme-color" content="#14202b">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('opcao_tema')||'light'}catch(e){document.documentElement.dataset.theme='light'}</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <style>
-:root{--bg:#eef1f4;--ink:#14202b;--mut:#5b6b79;--line:#d5dce2;--pan:#fff;--ac:#0f766e}
+:root{--bg:#eef1f4;--ink:#14202b;--mut:#5b6b79;--line:#d5dce2;--pan:#fff;--ac:#0f766e;--hd:#14202b;--inv:#fff;--sel:#e6f4f1;--det:#f8fafb;--warnb:#fef3c7;--warnl:#f59e0b;--pendb:#fee2e2;--pendl:#f87171;--bad:#b91c1c;--acink:#fff}
+[data-theme=dark]{--bg:#0D0F0E;--ink:#F1F5F2;--mut:#929D96;--line:#252E29;--pan:#171D1A;--ac:#00C875;--hd:#111714;--inv:#0D0F0E;--sel:#12261c;--det:#141a17;--warnb:#3a2f0b;--warnl:#a16207;--pendb:#3a1416;--pendl:#b91c1c;--bad:#F87171;--acink:#04130B;color-scheme:dark}
 *{box-sizing:border-box}html,body{height:100%;margin:0;overflow:hidden}#root{height:100%}
 body{font:14px/1.4 "Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg)}
 button,input,select{font:inherit}
-button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:5px 9px;cursor:pointer}
+button{border:1px solid var(--line);background:var(--pan);border-radius:6px;padding:5px 9px;cursor:pointer}
 button:hover{border-color:var(--ac)}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--ac)}
-button.p{background:var(--ac);color:#fff;border-color:var(--ac)}button.d{color:#b91c1c}
+button.p{background:var(--ac);color:var(--acink);border-color:var(--ac)}button.d{color:var(--bad)}
 button:disabled{opacity:.45;cursor:not-allowed}
-input,select{border:1px solid var(--line);border-radius:6px;padding:5px 8px;background:#fff}
+input,select{border:1px solid var(--line);border-radius:6px;padding:5px 8px;background:var(--pan);color:var(--ink)}
 #app{display:grid;grid-template-columns:410px 1fr;grid-template-rows:auto 1fr;height:100%}
-header{grid-column:1/3;display:flex;gap:10px;align-items:center;padding:8px 14px;background:var(--ink);color:#fff}
+header{grid-column:1/3;display:flex;gap:10px;align-items:center;padding:8px 14px;background:var(--hd);color:#fff}
 header b{font-size:16px}header span{opacity:.7;font-size:12px}header .sp{flex:1}
 header button{background:transparent;color:#fff;border-color:#ffffff55}
 aside{background:var(--pan);display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--line)}
@@ -33,45 +35,45 @@ aside{background:var(--pan);display:flex;flex-direction:column;min-height:0;bord
 .tools{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}.tools input{flex:1;min-width:120px}
 .o{border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:6px;cursor:pointer;display:grid;grid-template-columns:22px 1fr;gap:6px}
 .o:hover{border-color:var(--ac)}.o.act{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
-.o.sel{background:#e6f4f1}.o small{color:var(--mut)}
+.o.sel{background:var(--sel)}.o small{color:var(--mut)}
 .bd{display:inline-block;padding:1px 7px;border-radius:10px;color:#fff;font-size:11px;white-space:nowrap}
-.warn{background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;padding:5px 8px;margin:5px 0;font-size:12px}
-.pend{background:#fee2e2;border:1px solid #f87171;border-radius:6px;padding:2px 6px;font-size:11px}
-.det{border-top:1px solid var(--line);padding:10px;background:#f8fafb;max-height:42%;overflow:auto}
+.warn{background:var(--warnb);border:1px solid var(--warnl);border-radius:6px;padding:5px 8px;margin:5px 0;font-size:12px}
+.pend{background:var(--pendb);border:1px solid var(--pendl);border-radius:6px;padding:2px 6px;font-size:11px}
+.det{border-top:1px solid var(--line);padding:10px;background:var(--det);max-height:42%;overflow:auto}
 .rt{border:1px solid var(--line);border-radius:8px;padding:9px;margin-bottom:8px}
 .rt h4{margin:0 0 4px;display:flex;justify-content:space-between;gap:6px}
 .st{display:flex;gap:6px;align-items:center;padding:4px 0;border-top:1px dashed var(--line)}
-.st i{font-style:normal;background:var(--ink);color:#fff;border-radius:50%;min-width:20px;height:20px;text-align:center;font-size:12px;line-height:20px}
+.st i{font-style:normal;background:var(--ink);color:var(--inv);border-radius:50%;min-width:20px;height:20px;text-align:center;font-size:12px;line-height:20px}
 .st div{flex:1}.st button{padding:1px 6px}
 .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 #map{height:100%;width:100%;z-index:1}
 .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow,.leaflet-tile-container,.leaflet-pane>svg,.leaflet-pane>canvas,.leaflet-zoom-box,.leaflet-image-layer,.leaflet-layer{position:absolute;left:0;top:0}
 .leaflet-container{overflow:hidden;position:relative}
 .leaflet-tile{filter:inherit;visibility:inherit;margin:0!important;padding:0!important;max-width:none!important;max-height:none!important}
-.num{background:var(--ink);color:#fff;border-radius:50%;text-align:center;font-weight:700;font-size:12px;line-height:22px;border:2px solid #fff;width:26px!important;height:26px!important}
-.bar{position:absolute;z-index:500;left:60px;top:10px;background:#fff;border-radius:8px;padding:6px 10px;box-shadow:0 1px 6px #0003;font-size:12px}
-.leg{position:absolute;z-index:500;right:10px;bottom:24px;background:#fff;border-radius:8px;padding:6px 10px;box-shadow:0 1px 6px #0003;font-size:12px}
+.num{background:var(--ink);color:var(--inv);border-radius:50%;text-align:center;font-weight:700;font-size:12px;line-height:22px;border:2px solid var(--pan);width:26px!important;height:26px!important}
+.bar{position:absolute;z-index:500;left:60px;top:10px;background:var(--pan);border-radius:8px;padding:6px 10px;box-shadow:0 1px 6px #0003;font-size:12px}
+.leg{position:absolute;z-index:500;right:10px;bottom:24px;background:var(--pan);border-radius:8px;padding:6px 10px;box-shadow:0 1px 6px #0003;font-size:12px}
 .leg div{display:flex;gap:6px;align-items:center}.leg s{width:10px;height:10px;border-radius:50%;display:inline-block}
 #mapwrap{position:relative;min-height:0;height:100%;width:100%}
 .empty{color:var(--mut);padding:14px;text-align:center}
 @media(max-width:800px){#app{grid-template-columns:1fr;grid-template-rows:auto 45vh 1fr}header{grid-column:1}aside{order:3}}
 /* entregador: a página precisa rolar (o painel admin usa tela fixa) */
 html.drvpage,html.drvpage body{height:auto;min-height:100%;overflow:auto}html.drvpage #root{height:auto}
-.drv{max-width:520px;margin:0 auto;padding:12px}.drv .rt{background:#fff}
+.drv{max-width:520px;margin:0 auto;padding:12px}.drv .rt{background:var(--pan)}
 .drv #dmap{height:40vh;min-height:240px;border-radius:8px;margin:8px 0}
 .drv h2{margin:6px 0}
 .drv #dmap.dfull{position:fixed;left:0;top:0;right:0;bottom:0;width:100%;height:100vh;min-height:0;margin:0;border-radius:0;z-index:1000}
-#dmap .dfi{display:none;background:#fffbeb;border:1px solid #f59e0b;border-radius:8px;padding:6px 10px;max-width:72vw;font-size:13px;box-shadow:0 1px 6px #0004}
+#dmap .dfi{display:none;background:var(--pan)beb;border:1px solid #f59e0b;border-radius:8px;padding:6px 10px;max-width:72vw;font-size:13px;box-shadow:0 1px 6px #0004}
 #dmap.dfull .dfi{display:block}
 #dmap .dfs{padding:9px 12px;font-weight:600;box-shadow:0 1px 6px #0004}
 .drv .row button{flex:1;padding:10px}
 
 /* login, formulários e avisos */
-.login{max-width:340px;margin:12vh auto;padding:20px;background:#fff;border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;gap:10px}
+.login{max-width:340px;margin:12vh auto;padding:20px;background:var(--pan);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;gap:10px}
 .login h2{margin:0}.login input{padding:9px}.login button{padding:9px}
 #modal{position:fixed;left:0;top:0;right:0;bottom:0;background:#0007;z-index:2000;display:flex;align-items:center;justify-content:center;padding:12px}
 #modal[hidden]{display:none}
-#modal .box{background:#fff;border-radius:10px;padding:16px;width:100%;max-width:480px;max-height:92vh;overflow:auto}
+#modal .box{background:var(--pan);border-radius:10px;padding:16px;width:100%;max-width:480px;max-height:92vh;overflow:auto}
 #modal h3{margin:0 0 6px}
 #modal label{display:block;margin:6px 0;font-size:12px;color:var(--mut)}
 #modal label input,#modal label textarea{display:block;width:100%;margin-top:2px;font:inherit;font-size:14px;color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
@@ -85,7 +87,8 @@ const SB_URL='https://mijiqvekuwhvehzfygkt.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pamlxdmVrdXdodmVoemZ5Z2t0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUzNzY1ODYsImV4cCI6MjExMDk1MjU4Nn0.pXt5zzdC5M08yRgtPsU6Q_ZhBkfjZ3q6f5-6v_fYlUw';
 const GEO_KEY='0921bc7aa6764c29bfd04f2f70b0d14c'; /* Geoapify */
 const useGeo=!!GEO_KEY;
-const TILE_URL=useGeo?'https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}.png?apiKey='+GEO_KEY:'https://'+'tile.'+'openstreetmap.org/{z}/{x}/{y}.png';
+function toggleTema(){const t=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=t;try{localStorage.setItem('opcao_tema',t)}catch(e){}if(window.__tl)window.__tl.setUrl(tileUrl())}
+const tileUrl=()=>useGeo?'https://maps.geoapify.com/v1/tile/'+(document.documentElement.dataset.theme==='dark'?'dark-matter':'osm-bright')+'/{z}/{x}/{y}.png?apiKey='+GEO_KEY:'https://'+'tile.'+'openstreetmap.org/{z}/{x}/{y}.png';
 const TILE_OPTS={maxZoom:19,attribution:useGeo?'Powered by <a href="https://www.geoapify.com/" target="_blank" rel="noopener">Geoapify</a> | © <a href="https://openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors':'© OpenStreetMap'};
 const sb=supabase.createClient(SB_URL,SB_KEY,{auth:{detectSessionInUrl:false}});
 
@@ -156,129 +159,8 @@ async function push(){
 const save=()=>{S.routes.forEach(syncRoute);queue(push)};
 function saveLoja(){BASE=[LOJA.lat,LOJA.lng];queue(async()=>{const {error}=await sb.from('loja').upsert({id:1,endereco:LOJA.end||null,lat:LOJA.lat,lng:LOJA.lng});if(error)throw error})}
 
-/* ================= ENTREGADOR ================= */
-if(location.hash.startsWith('#entregador=')){
- document.documentElement.classList.add('drvpage');
- const token=location.hash.split('=')[1];
- let D=null,did=null,dm,dLayer,dMk,dMe,dPos=null,dLastPos=null,dLast=0,dSig='',dSeq=0,dFit=true,dTxt='',dGeo='',dTail=null,dHash='',dShell=false;
- const root=document.getElementById('root');
- root.innerHTML='<div class="drv"><h2>Carregando…</h2></div>';
- const dRoutes=()=>S.routes.filter(r=>r.driver===did&&['confirmada','andamento'].includes(r.status));
- const dStops=()=>{const out=[];dRoutes().forEach(r=>r.ids.forEach(id=>{const o=O(id);if(o&&o.status!=='finalizado'&&o.lat!=null)out.push(o)}));return out};
- const setInfo=()=>{const el=document.getElementById('dinfo');if(!el)return;const t=(dTxt||'')+(dGeo?(dTxt?'<br>':'')+'<small>'+dGeo+'</small>':'');el.hidden=!t;el.innerHTML=t;document.querySelectorAll('.dfi').forEach(e=>{e.innerHTML=t})};
- function drawRoute(ll,legKm,legMin,totKm,totMin,approx){
-  dLayer.clearLayers();
-  L.polyline(ll,{color:'#fff',weight:10,opacity:.9}).addTo(dLayer);
-  const pl=L.polyline(ll,{color:'#2563eb',weight:6,opacity:.95,dashArray:approx?'8 8':null}).addTo(dLayer);
-  if(dFit){dFit=false;dm.fitBounds(pl.getBounds().extend(dPos||BASE),{padding:[30,30]})}
-  const n=dStops()[0];
-  dTxt=n?(`<b>Próxima: #${esc(n.num)} ${esc(n.nome)}</b>`+(legKm!=null?` · ${legKm.toFixed(1)} km · ${Math.max(1,Math.round(legMin))} min<br><small>Rota completa: ${totKm.toFixed(1)} km · ~${Math.max(1,Math.round(totMin))} min (trânsito não considerado)</small>`:'')+(approx?'<br><small>Rota aproximada (linha reta): não foi possível consultar o serviço de rotas.</small>':'')):'';
-  setInfo();
- }
- function routeCall(pts){
-  if(useGeo)return fetch('https://api.geoapify.com/v1/routing?mode=drive&waypoints='+pts.map(p=>p[0]+','+p[1]).join('%7C')+'&apiKey='+GEO_KEY)
-   .then(r=>r.json()).then(j=>{const f=j.features&&j.features[0];if(!f)throw new Error('sem rota');
-    const g=f.geometry,pr=f.properties,lines=g.type==='MultiLineString'?g.coordinates:[g.coordinates],ll=[];
-    lines.forEach(seg=>seg.forEach(c=>ll.push([c[1],c[0]])));
-    const lg=pr.legs&&pr.legs[0]?pr.legs[0]:pr;
-    const legs=(pr.legs&&pr.legs.length===lines.length&&lines.length===pts.length-1)?lines.map((seg,i)=>({ll:seg.map(c=>[c[1],c[0]]),km:pr.legs[i].distance/1000,min:pr.legs[i].time/60})):null;
-    return{ll,legs,legKm:lg.distance/1000,legMin:lg.time/60,totKm:pr.distance/1000,totMin:pr.time/60}});
-  return fetch('https://router.project-osrm.org/route/v1/driving/'+pts.map(p=>p[1]+','+p[0]).join(';')+'?overview=full&geometries=geojson')
-   .then(r=>r.json()).then(j=>{if(j.code!=='Ok'||!j.routes||!j.routes.length)throw new Error('sem rota');const rt=j.routes[0];
-    return{ll:rt.geometry.coordinates.map(c=>[c[1],c[0]]),legs:null,legKm:rt.legs[0].distance/1000,legMin:rt.legs[0].duration/60,totKm:rt.distance/1000,totMin:rt.duration/60}});
- }
- /* Economia de créditos: a rota completa só é calculada quando a lista de paradas muda.
-    Enquanto o entregador anda, só o trecho até a próxima parada é recalculado (1 crédito). */
- function fetchRoute(){
-  const stops=dStops();
-  if(!stops.length){dLayer.clearLayers();dTxt='';dTail=null;setInfo();return}
-  const from=dPos||BASE;dLast=Date.now();dLastPos=from;const my=++dSeq;
-  const sig=stops.map(o=>o.id).join(',');
-  const live=!!(dTail&&dTail.sig===sig);
-  const pts=[from].concat(stops.map(pt));
-  if(live){
-   routeCall([from,pt(stops[0])]).then(r=>{if(my!==dSeq)return;
-    drawRoute(r.ll.concat(dTail.ll),r.legKm,r.legMin,r.legKm+dTail.km,r.legMin+dTail.min,false)})
-   .catch(()=>{/* mantém a linha anterior; tenta de novo no próximo movimento */});
-   return;
-  }
-  routeCall(pts).then(r=>{if(my!==dSeq)return;
-   dTail=r.legs?{sig,ll:[].concat(...r.legs.slice(1).map(l=>l.ll)),km:r.legs.slice(1).reduce((a,l)=>a+l.km,0),min:r.legs.slice(1).reduce((a,l)=>a+l.min,0)}:null;
-   drawRoute(r.ll,r.legKm,r.legMin,r.totKm,r.totMin,false)})
-  .catch(()=>{if(my!==dSeq)return;dTail=null;drawRoute(pts,null,null,0,0,true)});
- }
- function updateMap(){
-  if(!dm){dm=L.map('dmap').setView(BASE,12);L.tileLayer(TILE_URL,TILE_OPTS).addTo(dm);
-   dLayer=L.layerGroup().addTo(dm);dMk=L.layerGroup().addTo(dm);setTimeout(()=>dm.invalidateSize(),200);
-   const FS=L.Control.extend({options:{position:'topright'},onAdd(){const b=L.DomUtil.create('button','dfs');b.textContent='⛶ Tela cheia';L.DomEvent.disableClickPropagation(b);
-    b.onclick=()=>{const el=document.getElementById('dmap'),on=el.classList.toggle('dfull');b.textContent=on?'✕ Voltar aos pedidos':'⛶ Tela cheia';setTimeout(()=>dm.invalidateSize(),50)};return b}});
-   const FI=L.Control.extend({options:{position:'bottomleft'},onAdd(){const d=L.DomUtil.create('div','dfi');L.DomEvent.disableClickPropagation(d);d.innerHTML=dTxt;return d}});
-   dm.addControl(new FS());dm.addControl(new FI());
-   new ResizeObserver(()=>dm.invalidateSize()).observe(document.getElementById('dmap'))}
-  const st=dStops();dMk.clearLayers();
-  st.forEach((o,k)=>L.marker(pt(o),{icon:numIcon(k+1)}).bindTooltip('#'+o.num+' '+o.nome).addTo(dMk));
-  if(!dPos)L.marker(BASE,{icon:numIcon('L','#0f766e')}).bindTooltip('Loja').addTo(dMk);
-  const sig=st.map(o=>o.id).join(',');
-  if(sig!==dSig){dSig=sig;dFit=true;fetchRoute()}
- }
- function buildShell(){
-  root.innerHTML=`<div class="drv"><h2>Olá, ${esc(D.nome)}</h2>
-   <div class="warn" id="dinfo" hidden></div><div id="dmap"></div>
-   <div class="row" style="margin:0 0 8px"><button id="dctr">Centralizar em mim</button></div><div id="dlist"></div></div>`;
-  dShell=true;
-  /* localização em tempo real: a rota é recalculada pelas ruas a partir da posição atual */
-  if(navigator.geolocation){
-   navigator.geolocation.watchPosition(p=>{
-    const first=!dPos;dPos=[p.coords.latitude,p.coords.longitude];dGeo='';
-    if(dMe)dMe.setLatLng(dPos);else dMe=L.circleMarker(dPos,{radius:9,color:'#fff',weight:3,fillColor:'#2563eb',fillOpacity:1}).addTo(dm);
-    if(first)updateMap();
-    if(dStops().length&&(first||(dLastPos&&hav(dPos,dLastPos)*1000>80&&Date.now()-dLast>30000)))fetchRoute();
-    setInfo();
-   },()=>{dGeo='Ative a localização do aparelho para a rota em tempo real. Por enquanto a rota parte da loja.';setInfo()},{enableHighAccuracy:true,maximumAge:5000,timeout:20000});
-  }else{dGeo='Este aparelho não oferece localização. A rota parte da loja.'}
- }
- const view=()=>{
-  const rs=dRoutes();
-  document.getElementById('dlist').innerHTML=(rs.length?'':'<div class="empty">Nenhuma rota liberada para você agora.</div>')+
-  rs.map(r=>`<div class="rt"><h4><span>Rota ${esc(r.id)}</span><span>${RST[r.status]}</span></h4>
-   ${r.status==='confirmada'?`<button class="p" style="width:100%" data-a="ini" data-r="${esc(r.id)}">Iniciar rota</button>`:''}
-   ${r.ids.map((id,i)=>{const o=O(id);if(!o)return '';const done=o.status==='finalizado';return `<div class="st" style="align-items:flex-start;${done?'opacity:.5':''}"><i>${i+1}</i><div><b>${esc(o.nome)}</b> ${badge(o.status)}${o.obs&&!done?' <span class="pend">⚠ '+esc(o.obs)+'</span>':''}<br>
-    <a href="tel:${esc(o.tel)}">${esc(o.tel)}</a><br>${esc(fullEnd(o))}<br><small>Ref.: ${esc(o.ref)}</small><br><small>${esc(o.itens)}</small>
-    ${done?'':`<div class="row"><a href="${gmaps(o)}" target="_blank" rel="noopener"><button>Abrir no Google Maps</button></a>
-    ${r.status==='andamento'&&o.status==='rota'?`<button class="p" data-a="ok" data-o="${esc(o.id)}">Concluída</button><button class="d" data-a="pb" data-o="${esc(o.id)}">Problema</button>`:''}</div>`}</div></div>`}).join('')}</div>`).join('');
-  updateMap();
- };
- let loading=false;
- async function dLoad(){
-  if(loading)return;loading=true;
-  try{
-   const {data,error}=await sb.rpc('driver_data',{p_token:token});
-   if(error)throw error;
-   if(!data){root.innerHTML='<div class="drv"><h2>Link inválido</h2><p>Este link não está ativo. Peça um novo link ao administrador.</p></div>';return}
-   const h=JSON.stringify(data);if(h===dHash&&dShell)return;dHash=h;
-   D=data.driver;did=D.id;
-   if(data.loja){BASE=[data.loja.lat,data.loja.lng]}
-   S.orders=(data.orders||[]).map(orderFromDb);S.routes=(data.routes||[]).map(routeFromDb);
-   if(!dShell)buildShell();
-   view();
-  }catch(e){if(!dShell)root.innerHTML='<div class="drv"><h2>Sem conexão</h2><p>Não foi possível carregar. Tentando de novo…</p></div>'}
-  finally{loading=false}
- }
- root.addEventListener('click',async e=>{
-  if(e.target.id==='dctr'){if(dPos&&dm)dm.setView(dPos,16);else alert('Localização do aparelho ainda não disponível. Ative o GPS e permita o acesso à localização.');return}
-  const b=e.target.closest('button[data-a]');if(!b)return;const a=b.dataset.a;let res;
-  if(a==='ini')res=await sb.rpc('driver_start_route',{p_token:token,p_route:b.dataset.r});
-  else if(a==='ok')res=await sb.rpc('driver_order_action',{p_token:token,p_order:b.dataset.o,p_action:'ok'});
-  else if(a==='pb'){const m=prompt('Qual foi o problema na entrega?');if(m===null)return;res=await sb.rpc('driver_order_action',{p_token:token,p_order:b.dataset.o,p_action:'pb',p_obs:m})}
-  if(res&&res.error)toast('Não foi possível enviar. Tente de novo.',true);
-  dHash='';dLoad();
- });
- dLoad();
- setInterval(dLoad,10000);
- document.addEventListener('visibilitychange',()=>{if(!document.hidden)dLoad()});
-}
 /* ================= ADMIN ================= */
-else{
+{
  let tab='pedidos',q='',fil='',act=null,fixing=null,map,mk,rl,lojaMk,settingLoja=false,showCanc=false,subscribed=false,reloading=false;
  const sel=new Set(),editing=new Set();
  const activeDrivers=(keep)=>DRIVERS.filter(d=>d.ativo||d.id===keep);
@@ -337,7 +219,7 @@ else{
  /* ----- interface ----- */
  function buildUI(){
   document.getElementById('root').innerHTML=`<div id="app"><header><b>Opção Lanche · Delivery Control</b><span>Manaus${useGeo?'':' · ⚠ chave Geoapify não configurada (mapa de teste)'}</span><div class="sp"></div>
-  <button id="bLoja">Endereço da loja</button><button id="bOut">Sair</button></header>
+  <button id="tema" title="Modo claro/escuro" aria-label="Alternar modo claro e escuro">◐</button><button id="bLoja">Endereço da loja</button><button id="bOut">Sair</button></header>
   <aside><div class="tabs"><button data-t="pedidos">Pedidos</button><button data-t="rotas">Rotas</button></div><div class="pane" id="pane"></div><div class="det" id="det" hidden></div></aside>
   <div id="mapwrap"><div id="map"></div><div class="bar" id="bar"></div><div class="leg" id="leg"></div>
   <div class="leg" id="lojaBox" hidden style="left:60px;right:auto;top:50px;bottom:auto;width:340px;font-size:13px"><b>Endereço da loja</b>
@@ -345,7 +227,7 @@ else{
   <div class="row" style="margin:0"><button class="p" id="lojaBusca">Buscar no mapa</button><button id="lojaClick">Marcar no mapa</button><button id="lojaFecha">Fechar</button></div>
   <div id="lojaMsg" style="margin-top:6px;color:#5b6b79">Você também pode arrastar o pin da loja no mapa.</div></div></div></div>`;
   map=L.map('map').setView(BASE,12);
-  L.tileLayer(TILE_URL,TILE_OPTS).addTo(map);
+  (window.__tl=L.tileLayer(tileUrl(),TILE_OPTS)).addTo(map);
   mk=L.layerGroup().addTo(map);rl=L.layerGroup().addTo(map);
   lojaMk=L.marker(BASE,{draggable:true,icon:L.divIcon({className:'',html:'<div class="num" style="background:#0f766e">L</div>',iconSize:[26,26]})}).addTo(map).bindTooltip('Loja (arraste para ajustar)');
   lojaMk.on('dragend',()=>{const q2=lojaMk.getLatLng();LOJA.lat=q2.lat;LOJA.lng=q2.lng;saveLoja();render()});
@@ -409,7 +291,7 @@ else{
  function routeCard(r){
   const s=stats(r),dra=r.status==='rascunho',ed=dra||editing.has(r.id);
   const link=(DRIVERS.find(d=>d.id===r.driver)||{}).token;
-  const url=link?location.href.split('#')[0]+'#entregador='+link:'';
+  const url=link?location.origin+location.pathname.replace(/[^/]*$/,'')+'entregador.html':'';
   const addable=[...sel].filter(id=>O(id)&&free(O(id)));
   const others=S.routes.filter(x=>x.id!==r.id&&ACTIVE.includes(x.status));
   return `<div class="rt"><h4><span>Rota ${esc(r.id)} · ${esc(drvName(r.driver))}</span><span class="bd" style="background:#475569">${RST[r.status]}</span></h4>
@@ -425,7 +307,7 @@ else{
    ${['confirmada','andamento'].includes(r.status)?`<button class="p" data-fn="${esc(r.id)}">Finalizar</button>`:''}
    <button data-vw="${esc(r.id)}">Ver no mapa</button></div>
    ${ed&&!dra?'<div class="warn">Modo edição: as mudanças valem na hora, inclusive no app do entregador.</div>':''}
-   ${url&&['confirmada','andamento'].includes(r.status)?`<div style="margin-top:6px"><small>Link do entregador (copie e envie pelo WhatsApp):</small><br><input readonly style="width:100%" value="${esc(url)}" onclick="this.select()"></div>`:''}</div>`;
+   ${url&&['confirmada','andamento'].includes(r.status)?`<div style="margin-top:6px"><small>Link do entregador (ele entra com o e-mail e a senha cadastrados no app principal):</small><br><input readonly style="width:100%" value="${esc(url)}" onclick="this.select()"></div>`:''}</div>`;
  }
  function cancelledCard(r){
   return `<div class="rt" style="background:#f8fafb"><h4><span>Rota ${esc(r.id)} · ${esc(drvName(r.driver))}</span><span class="bd" style="background:#b91c1c">Cancelada</span></h4>
@@ -488,6 +370,7 @@ else{
   if(t.id==='bOut'){sb.auth.signOut().then(()=>{showLogin()});return}
   if(t.id==='fCancel'){closeModal();return}
   if(t.id==='fSave'){saveOrder(t.dataset.id||null);return}
+  if(t.id==='tema'){toggleTema();return}
   if(t.id==='bLoja'){openLoja();return}
   if(t.id==='lojaFecha'){document.getElementById('lojaBox').hidden=true;return}
   if(t.id==='lojaBusca'){buscaLoja();return}
