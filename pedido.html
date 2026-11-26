@@ -127,6 +127,8 @@ dialog{max-height:92dvh}
 .oh .ot{position:absolute;left:20px;right:60px;bottom:10px;z-index:1}.oh:not(.im) .ot{position:static}.oh h2{font-size:1.35rem}.oh p{margin:3px 0 0;color:var(--mut);font-size:.88rem}
 .oh .x{position:absolute;top:10px;right:12px;z-index:2;width:38px;height:38px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:1.3rem;cursor:pointer}
 #toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));transform:translate(-50%,20px);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:99px;font-weight:700;font-size:.88rem;opacity:0;pointer-events:none;transition:.2s;z-index:40}#toast.on{opacity:1;transform:translate(-50%,0)}
+:root{--bg:#FAF7F2;--bg2:#F3EDE3;--card:#FFFFFF;--ink:#2B2320;--mut:#74695F;--line:#E8E1D6;--pri:#E9961A;--pri2:#F4B84E;--acc:#C2412D;--price:#B23A1E;--ok:#1F8F52;--bad:#C2412D}
+[data-theme=dark]{--bg:#15120F;--bg2:#1C1814;--card:#221D18;--ink:#F4EEE6;--mut:#B3A798;--line:#332C25;--pri:#F0A83A;--pri2:#F4B84E;--acc:#F08463;--price:#F0A83A;--ok:#52D48B;--bad:#F08463}
 </style>
 </head>
 <body>
@@ -150,7 +152,7 @@ dialog{max-height:92dvh}
 </div></header>
 <div class="wrap">
  <div id="home">
-  <section class="hero" id="hero"><div class="hin"><h1 id="hname">Opção Lanche</h1><p>Fome de lanche? Chega quentinho na sua porta.</p><div class="chipsi" id="chipsi"></div></div></section>
+  <section class="hero" id="hero"><div class="hin"><h1 id="hname">Opção Lanche</h1><p id="slogan">Fome de lanche? Chega quentinho na sua porta.</p><div class="chipsi" id="chipsi"></div></div></section>
   <div id="aviso" class="aviso" hidden></div>
   <div id="banner" class="banner" hidden></div>
   <section class="sec" id="menu">
@@ -193,12 +195,12 @@ async function load(){
 function cabeca(){
   const nm=D.cfg.nome_loja||'Opção Lanche',p=nm.split(' '),z=zapNum(),ab=aberta();
   $('#logo').innerHTML=(D.cfg.logo?`<img src="${esc(D.cfg.logo)}" alt="">`:'')+`<span>${esc(p[0])}${p.length>1?' <b>'+esc(p.slice(1).join(' '))+'</b>':''}</span>`;
-  $('#hname').textContent=nm;
+  $('#hname').textContent=nm;$('#slogan').textContent=D.cfg.descricao||'Fome de lanche? Chega quentinho na sua porta.';
   const h=$('#hero');h.classList.toggle('img',!!D.cfg.banner);h.style.backgroundImage=D.cfg.banner?`url("${String(D.cfg.banner).replace(/"/g,'%22')}")`:'';
   $('#aberta').textContent=ab?'Aberto':'Fechado';$('#aberta').classList.toggle('off',!ab);
   const av=(ab?'':'Estamos fechados no momento. ')+(D.cfg.aviso||'');$('#aviso').hidden=!av;$('#aviso').textContent=av;
-  $('#chipsi').innerHTML=`<span>${I('clock')}${ab?'Atendendo agora':'Fechado'}</span>`+(D.bai.length?`<span>${I('bike')}Entrega em ${D.bai.length} ${D.bai.length>1?'bairros':'bairro'}</span>`:'')+`<span>${I('pin')}Retirada na loja</span>`+(z?`<a href="https://wa.me/${z}?text=${encodeURIComponent('Olá! Vim pelo site e queria fazer um pedido.')}" target="_blank" rel="noopener">${I('zap')}WhatsApp</a>`:'');
-  $('#foot').textContent=nm+' · Manaus'+(z?' · WhatsApp '+String(D.cfg.whatsapp):'');
+  $('#chipsi').innerHTML=`<span>${I('clock')}${ab?'Atendendo agora':'Fechado'}</span>`+(D.bai.length?`<span>${I('bike')}Entrega em ${D.bai.length} ${D.bai.length>1?'bairros':'bairro'}${+D.cfg.tempo_entrega?' · ~'+D.cfg.tempo_entrega+' min':''}</span>`:'')+`<span>${I('pin')}Retirada na loja${+D.cfg.tempo_retirada?' · ~'+D.cfg.tempo_retirada+' min':''}</span>`+(z?`<a href="https://wa.me/${z}?text=${encodeURIComponent('Olá! Vim pelo site e queria fazer um pedido.')}" target="_blank" rel="noopener">${I('zap')}WhatsApp</a>`:'');
+  $('#foot').innerHTML=esc(nm+' · Manaus'+(z?' · WhatsApp '+String(D.cfg.whatsapp):''))+(D.cfg.instagram?` · <a href="https://instagram.com/${esc(String(D.cfg.instagram).replace(/^@/,''))}" target="_blank" rel="noopener" style="color:inherit">Instagram</a>`:'')+(D.cfg.regulamento?`<details style="margin-top:8px"><summary>Regulamento</summary><p>${esc(D.cfg.regulamento)}</p></details>`:'');
 }
 const card=p=>`<button class="pc" data-p="${p.id}"><div class="pb"><b>${esc(p.nome)}</b>${p.descricao?`<span class="ds">${esc(p.descricao)}</span>`:''}<span class="pr">${precoLbl(p)}</span></div><div class="ph">${p.imagem?`<img src="${esc(p.imagem)}" alt="" loading="lazy">`:esc((p.nome||'?')[0].toUpperCase())}<span class="add">${I('plus')}</span></div></button>`;
 function render(){
@@ -245,13 +247,15 @@ $('#optdlg').onclick=e=>{
 };
 
 /* finalizar pedido */
+const offK=k=>[false,'false'].includes(D.cfg[k]);
 function desenhaCk(msg){
+  if(offK('entrega_ativa')&&tipo==='delivery')tipo='retirada';else if(offK('retirada_ativa')&&tipo==='retirada')tipo='delivery';
   const me=ld('ol_cli')||{},t=subtotal();
   const keep=['fn','ft','fe','fr','ftroco','fobs'].reduce((o,i)=>{const x=$('#'+i);if(x)o[i]=x.value;return o},{}),fbv=($('#fb')||{}).value||me.bai||'',tx=taxa(fbv);
   const val=(i,d)=>esc(keep[i]!==undefined?keep[i]:(d||''));
   $('#ckdlg').innerHTML=`<div class="dh"><h2>Seu pedido</h2></div><div class="db">
    ${cart.map((l,i)=>{const x=linha(l);return `<div class="opt"><span><b>${esc(x.nome)}</b>${x.adds.length?`<small style="display:block;color:var(--mut);font-weight:500">+ ${esc(x.adds.map(addTxt).join(', '))}</small>`:''}${x.obs?`<small style="display:block;color:var(--mut);font-weight:500">Obs: ${esc(x.obs)}</small>`:''}</span><div class="st"><button data-i="${i}" data-d="-1">−</button><b>${l.qtd}</b><button data-i="${i}" data-d="1">+</button></div></div>`}).join('')}
-   <div class="seg"><button class="${tipo==='delivery'?'on':''}" data-t="delivery">Entrega</button><button class="${tipo==='retirada'?'on':''}" data-t="retirada">Retirar na loja</button></div>
+   <div class="seg">${offK('entrega_ativa')?'':`<button class="${tipo==='delivery'?'on':''}" data-t="delivery">Entrega</button>`}${offK('retirada_ativa')?'':`<button class="${tipo==='retirada'?'on':''}" data-t="retirada">Retirar na loja</button>`}</div>
    <label for="fn">Seu nome</label><input id="fn" autocomplete="name" value="${val('fn',me.nome)}">
    <label for="ft">WhatsApp / telefone</label><input id="ft" inputmode="tel" autocomplete="tel" placeholder="92 99999-9999" value="${val('ft',me.tel)}">
    ${tipo==='delivery'?`<label for="fe">Endereço (rua e número)</label><input id="fe" autocomplete="street-address" value="${val('fe',me.end)}">
@@ -285,6 +289,7 @@ $('#ckdlg').onclick=async e=>{
     const end=del?$('#fe').value.trim():'',bai=del?$('#fb').value:'';
     if(nome.length<2)return desenhaCk('Informe seu nome.');if(tel.length<10)return desenhaCk('Informe um telefone com DDD.');
     if(del&&end.length<4)return desenhaCk('Informe o endereço de entrega.');if(del&&!bai)return desenhaCk('Escolha o bairro.');
+    if(+D.cfg.pedido_minimo>0&&subtotal()<+D.cfg.pedido_minimo)return desenhaCk('Pedido mínimo: '+brl(D.cfg.pedido_minimo)+'.');
     const b=e.target.closest('[data-send]');b.disabled=true;b.textContent='Enviando…';
     const p={tipo,cliente:nome,tel:$('#ft').value.trim(),endereco:end,bairro_id:bai||null,referencia:del?$('#fr').value.trim():'',pag,
       troco:pag==='Dinheiro'?+(String($('#ftroco')?$('#ftroco').value:'').replace(',','.'))||0:0,obs:$('#fobs').value.trim(),
