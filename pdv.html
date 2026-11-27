@@ -249,6 +249,28 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px color-mix(in srgb,v
 button.p:hover{background:color-mix(in srgb,var(--g) 86%,#fff);border-color:transparent}
 .rt{width:100%;border-collapse:collapse;font-size:.84rem}.rt th{text-align:left;color:var(--mut);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}.rt td{padding:7px 10px;border-bottom:1px solid var(--line)}
 #relatorios{max-width:1200px!important}
+
+.hch{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--g);color:var(--g);background:transparent;border-radius:6px;padding:4px 10px;font:600 .78rem/1.2 inherit;cursor:pointer;white-space:nowrap}
+.hch.off{border-color:var(--bad);color:var(--bad)}
+.tgl{width:20px;height:11px;border-radius:99px;background:currentColor;position:relative;display:inline-block}.tgl::after{content:"";position:absolute;top:1.5px;right:1.5px;width:8px;height:8px;border-radius:50%;background:var(--bg)}.off .tgl::after{right:auto;left:1.5px}
+#catbar{display:flex;flex-wrap:nowrap;gap:14px;overflow-x:auto;padding:4px 2px 8px}
+.cat{flex:none;width:84px;display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;color:var(--ink);cursor:pointer;font-size:.68rem;font-weight:700;text-align:center;text-transform:uppercase;line-height:1.15}
+.cimg{width:62px;height:62px;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:var(--bg2);border:2px solid var(--line);font-size:1.3rem;color:var(--mut)}.cimg img{width:100%;height:100%;object-fit:cover}
+.cat.on .cimg{border-color:var(--g);box-shadow:0 0 0 3px color-mix(in srgb,var(--g) 28%,transparent)}.cat.on .cn{color:var(--g)}
+.mdash h3{font-size:.72rem;letter-spacing:.06em;color:var(--mut);margin:18px 0 10px;text-transform:uppercase}
+.mg2{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.mc2{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;cursor:pointer}.mc2:hover{border-color:var(--bd2)}
+.mc2 .mh{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--bg2);border-bottom:1px solid var(--line)}.mc2 .mh small{font-size:.68rem;color:var(--mut)}
+.mc2 .mb{padding:8px 12px}.mc2 .mf{display:flex;border-top:1px solid var(--line)}
+.mc2 .mf button{flex:1;background:none;border:0;border-right:1px solid var(--line);color:var(--ink);padding:7px;font-size:.76rem;cursor:pointer}.mc2 .mf button:last-child{border-right:0}.mc2 .mf button:hover{background:var(--hov)}
+.mc2.ocupada .mh b,.mc2.conta .mh b{color:var(--bad)}.mc2 svg{display:block;margin:10px auto;width:110px;color:var(--mut);opacity:.5}
+.uhead,.urow{display:grid;grid-template-columns:56px 1.2fr 1fr 1.4fr 60px;gap:10px;align-items:center;padding:8px 14px;font-size:.85rem}
+.uhead{background:var(--bg2);font-weight:700;color:var(--ink)}.urow{border-top:1px solid var(--line)}.urow:hover{background:var(--hov)}
+.ib2{width:28px;height:26px;border-radius:5px;border:0;background:var(--bg);color:var(--ink);display:inline-grid;place-items:center;cursor:pointer}.ib2 .ic{width:14px;height:14px}
+main section:not(#novo) .b{padding:6px 12px;min-height:32px;font-size:.8rem}
+main section:not(#novo) .bar input,main section:not(#novo) .bar select,#cfiltro{min-height:34px;padding:6px 10px;font-size:.85rem}
+.sub button{padding:6px 14px;font-size:.82rem}
+@media(max-width:820px){.hch{font-size:.68rem;padding:3px 7px}#hl{gap:8px!important}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
 </head>
@@ -564,7 +586,7 @@ function renderPicker(){
   const semCat=m=>!db.cats.some(c=>c.id===m.cat),temSem=db.menu.some(semCat);
   const abas=[['todos','Todos'],...db.cats.map(c=>[c.id,c.nome]),...(db.cats.length&&temSem?[['sem','Outros']]:[])];
   if(!abas.some(x=>x[0]===catSel))catSel='todos';
-  $('#catbar').innerHTML=db.cats.length?abas.map(([id,n])=>`<button class="chip${catSel===id?' on':''}" aria-pressed="${catSel===id}" data-c="${id}">${esc(n)}</button>`).join(''):'';
+  $('#catbar').innerHTML=db.cats.length?abas.map(([id,n])=>{const c=db.cats.find(x=>x.id===id);return `<button class="cat${catSel===id?' on':''}" aria-pressed="${catSel===id}" data-c="${id}"><span class="cimg">${c&&c.imagem?`<img src="${esc(c.imagem)}" alt="" loading="lazy">`:esc(n[0].toUpperCase())}</span><span class="cn">${esc(n)}</span></button>`}).join(''):'';
   const ord=m=>{const i=db.cats.findIndex(c=>c.id===m.cat);return i<0?999:i};
   const q=psq.trim().toLowerCase();
   const l=db.menu.filter(m=>(catSel==='todos'||(catSel==='sem'?semCat(m):m.cat===catSel))&&(!q||m.nome.toLowerCase().includes(q))).sort((a,b)=>ord(a)-ord(b));
@@ -1441,8 +1463,8 @@ function renderClientes(){
   const q=$('#cfiltro').value,t=norm(q),d=dig(q);
   const l=listaUsu().filter(c=>!t||norm(c.nome).includes(t)||(d.length>=3&&dig(c.tel).includes(d))).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
   const np=Math.max(1,Math.ceil(l.length/UP));if(upg>=np)upg=np-1;if(upg<0)upg=0;
-  $('#clist').innerHTML=l.length?'<div class="uhead"><span>Nome</span><span>Telefone</span><span></span></div>'
-    +l.slice(upg*UP,upg*UP+UP).map(c=>`<div class="urow"><span>${esc(c.nome||'(sem nome)')}${(c.email||(contaDe(c)||{}).email)?'<small class="h" style="display:block">'+esc(c.email||contaDe(c).email)+'</small>':''}</span><span>${esc(c.tel||'')}</span><button class="b" data-id="${c.id}">Editar</button></div>`).join('')
+  $('#clist').innerHTML=l.length?'<div class="uhead"><span>Cód.</span><span>Nome</span><span>Telefone</span><span>E-mail</span><span>Opções</span></div>'
+    +l.slice(upg*UP,upg*UP+UP).map((c,ix)=>`<div class="urow"><span>${upg*UP+ix+1}</span><span>${esc(c.nome||'(sem nome)')}</span><span>${esc(c.tel||'')}</span><span>${esc(c.email||(contaDe(c)||{}).email||'')}</span><span><button class="ib2" data-id="${c.id}" title="Editar" aria-label="Editar">${I('edit')}</button></span></div>`).join('')
     :'<div class="vazio">'+(listaUsu().length?'Nenhum resultado.':'Nada cadastrado ainda. Use o botão Cadastrar.')+'</div>';
   $('#upager').innerHTML=np>1?`<button class="b" data-p="-1"${upg?'':' disabled'}>Anterior</button><span>Página ${upg+1} de ${np}</span><button class="b" data-p="1"${upg<np-1?'':' disabled'}>Próxima</button>`:'';
 }
@@ -1670,7 +1692,7 @@ function abreMesa(id,pagar){
     pe='<button class="b" data-a="voltar">Voltar</button><button class="b p" data-a="ok">Confirmar pagamento</button>';
   }else{
     corpo=lista+(o?`<div class="otot"><div class="t"><span>Total parcial</span><span>${brl(totalPedido(o))}</span></div></div>`:'');
-    pe=`<button class="b p" data-a="lancar">Lançar itens</button>${o?'<button class="b" data-a="conta">Imprimir conta</button><button class="b" data-a="pagar">Fechar mesa</button>':m.status!=='livre'?'<button class="b" data-a="liberar">Liberar mesa</button>':'<button class="b d" data-a="excluir">Excluir mesa</button>'}<button class="b" data-a="fechar">Fechar</button>`;
+    pe=`<button class="b p" data-a="lancar">Lançar itens</button>${o?'<button class="b" data-a="conta">Imprimir conta</button><button class="b" data-a="pagar">Fechar mesa</button>':m.status!=='livre'?'<button class="b" data-a="liberar">Liberar mesa</button>':''}<button class="b" data-a="fechar">Fechar</button>`;
   }
   d.innerHTML=`<div class="od-h"><h2 style="margin:0">Mesa ${esc(m.numero)}</h2><small class="st">${m.status==='livre'?'Livre':m.status==='conta'?'Conta pedida':'Ocupada'}</small></div><div class="od-b">${corpo}</div><div class="od-f">${pe}</div>`;
   d.onclick=async e=>{
@@ -1986,7 +2008,7 @@ $('#pstrip').onclick=e=>{const b=e.target.closest('[data-go]');if(b)tab(b.datase
 function renderInicio(){
   const hj=new Date().toDateString(),os=db.orders.filter(o=>new Date(o.criado).toDateString()===hj&&o.status!==4),fin=os.filter(o=>o.status===3),fat=fin.reduce((s,o)=>s+totalPedido(o),0);
   const K=[['Pedidos hoje',os.length],['Faturamento hoje',brl(fat)],['Ticket médio hoje',brl(fin.length?fat/fin.length:0)],['Pedidos em andamento',db.orders.filter(o=>o.status<3).length],['Mesas ocupadas',db.mesas.filter(m=>m.status!=='livre').length],['Caixa',CX?'Aberto':'Fechado']];
-  const SH=[['pedidos','pedidos','Pedidos'],['novo','novo','Novo pedido'],['mesas','mesas','Mesas'],['caixa','caixa','Caixa'],['cardapio','cardapio','Estoque'],['financeiro','fin','Dashboard']],ST=['Em preparo','Em preparo','Em rota','Finalizado','Cancelado'];
+  const SH=[['pedidos','pedidos','Pedidos']],ST=['Em preparo','Em preparo','Em rota','Finalizado','Cancelado'];
   const U=[...db.orders].sort((a,b)=>new Date(b.criado)-new Date(a.criado)).slice(0,8);
   $('#inicio').innerHTML=`<h2 class="ih">Atalhos</h2><div class="atal">${SH.map(([t,i,n])=>`<button class="b" data-go="${t}">${I(i)}${n}</button>`).join('')}</div>
   <h2 class="ih">Insights de hoje</h2><div class="kpis">${K.map(([k,v])=>`<div class="box"><small>${k}</small><b>${v}</b></div>`).join('')}</div>
@@ -2082,6 +2104,45 @@ function deveAbrir(H){const n=new Date(),t=n.getHours()*60+n.getMinutes(),d=n.ge
   if(a!==null&&f!==null&&(f>a?(t>=a&&t<f):t>=a))return true;
   return a2!==null&&f2!==null&&f2<=a2&&t<f2}
 setInterval(async()=>{const H=CFGC.horario;if(!H||!H.on)return;const v=deveAbrir(H);if(v!==lojaAb()){try{await cfgSet('loja_aberta',v);CFGC.loja_aberta=v;hdrLoja()}catch(e){}}},60000);
+
+/* ===== ajustes de layout: topo, mesas ===== */
+{const h=$('header'),td=h.firstElementChild,hl=document.createElement('div');hl.id='hl';hl.style.cssText='display:flex;align-items:center;gap:16px;min-width:0';
+ $('#lojaChip').remove();const lj=document.createElement('button');lj.id='lojaChip';lj.type='button';lj.title='Abrir ou fechar a loja online';
+ hl.append($('#cxChip'),lj,td);h.prepend(hl);
+ lj.onclick=async()=>{const v=!lojaAb();try{await cfgSet('loja_aberta',v);CFGC.loja_aberta=v;hdrLoja();notif(v?'Loja aberta no site':'Loja fechada no site')}catch(e){aviso('Não consegui mudar: '+(e.message||e))}}}
+hdrLoja=function(){const e=$('#lojaChip');if(!e)return;const a=lojaAb();e.className='hch'+(a?'':' off');e.innerHTML=`<i class="tgl"></i>${a?'Loja aberta':'Loja fechada'}`};
+hdrCaixa=function(){const e=$('#cxChip');e.className='hch'+(CX?'':' off');e.innerHTML=`<i class="tgl"></i><span id="cxTxt">${CX?'Caixa aberto':'Caixa fechado'}</span><span id="resumo" hidden></span>`};
+hdrCaixa();hdrLoja();
+let mfil='todas';
+{const mb=$('#addMesa').closest('.bar');mb.id='mbar';mb.style.flexWrap='wrap';
+ mb.innerHTML='<input id="msq" type="search" placeholder="Pesquisar mesa…" style="max-width:220px"><div class="chips" id="mf" style="margin:0"></div><button class="b" id="mtela" style="margin-left:auto">Tela cheia</button>';
+ $('#mgrid').className='mdash';
+ $('#msq').oninput=()=>renderMesas();$('#mtela').onclick=()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();
+ $('#mf').onclick=e=>{const b=e.target.closest('button');if(b){mfil=b.dataset.f;renderMesas()}}}
+const pad2=m=>String(m.numero).padStart(2,'0');
+const MESA_SVG='<svg viewBox="0 0 80 50" fill="currentColor" aria-hidden="true"><rect x="22" y="22" width="36" height="6" rx="2"/><rect x="38" y="28" width="4" height="18"/><rect x="30" y="44" width="20" height="3" rx="1.5"/><circle cx="12" cy="14" r="5"/><rect x="7" y="21" width="10" height="16" rx="3"/><circle cx="68" cy="14" r="5"/><rect x="63" y="21" width="10" height="16" rx="3"/></svg>';
+renderMesas=function(){
+  const q=(($('#msq')||{}).value||'').trim().toLowerCase(),A=mesaOrd(),L=A.filter(m=>!q||('mesa '+m.numero).includes(q)||pad2(m).includes(q));
+  const oc=L.filter(m=>m.status==='ocupada'),fe=L.filter(m=>m.status==='conta'),li=L.filter(m=>m.status==='livre'),n=s=>A.filter(m=>m.status===s).length;
+  $('#mf').innerHTML=[['todas','Todas',''],['livre','Livres',n('livre')],['ocupada','Ocupadas',n('ocupada')],['conta','Fechadas',n('conta')]].map(([k,l,c])=>`<button class="chip${mfil===k?' on':''}" data-f="${k}">${l}${c!==''?' ('+c+')':''}</button>`).join('');
+  const ocu=m=>{const o=abertaDe(m.id),mn=o?Math.max(0,Math.round((Date.now()-new Date(o.criado))/6e4)):0;
+    return `<div class="mc2 ${m.status}" data-id="${m.id}"><div class="mh"><b>Mesa ${pad2(m)}</b><small>${m.status==='conta'?'Conta pedida':'Ocupada'}</small></div><div class="mb"><div class="cxr"><span>Consumo</span><b style="color:var(--bad)">${o?brl(totalPedido(o)):'-'}</b></div><div class="cxr"><span>Permanência</span><b>${mn} min</b></div><div class="cxr"><span>Garçom</span><b>${esc((o&&o.garcom)||'-')}</b></div></div><div class="mf"><button data-m="ver" data-id="${m.id}">Consumo</button><button data-m="pagar" data-id="${m.id}">Fechar mesa</button></div></div>`};
+  const liv=m=>`<div class="mc2" data-id="${m.id}"><div class="mh"><b>Mesa ${pad2(m)}</b><small>Livre</small></div>${MESA_SVG}<div class="mf"><button data-m="lancar" data-id="${m.id}">Lançar itens</button></div></div>`;
+  const sec=(t,l,f)=>l.length?`<h3>${t} (${l.length})</h3><div class="mg2">${l.map(f).join('')}</div>`:'';
+  const show=k=>mfil==='todas'||mfil===k;
+  $('#mgrid').innerHTML=(show('ocupada')?sec('Em andamento',oc,ocu):'')+(show('conta')?sec('Conta pedida',fe,ocu):'')+(show('livre')?sec('Disponíveis',li,liv):'')||'<div class="vazio">Nenhuma mesa. Defina a quantidade em Configurações → Pagamentos e mesas.</div>';
+};
+$('#mgrid').addEventListener('click',e=>{const b=e.target.closest('[data-m]');
+  if(b){const id=b.dataset.id;if(b.dataset.m==='lancar'){setTipo('mesa');$('#cmesa').value=id;tab('novo')}else abreMesa(id,b.dataset.m==='pagar');return}
+  const c=e.target.closest('.mc2');if(c)abreMesa(c.dataset.id)});
+$('#p_serv').parentElement.insertAdjacentHTML('afterend','<div><label for="p_mesas">Quantidade de mesas</label><input id="p_mesas" inputmode="numeric"></div>');
+{const rc3=renderConfig;renderConfig=function(){rc3();$('#p_mesas').value=db.mesas.length}}
+$('#p_salvar').addEventListener('click',()=>{
+  const n=Math.min(200,Math.max(0,parseInt($('#p_mesas').value)||0));let mx=Math.max(0,...db.mesas.map(m=>parseInt(m.numero)||0));
+  if(n>db.mesas.length){while(db.mesas.length<n)db.mesas.push({id:uid(),numero:String(++mx),status:'livre'})}
+  else if(n<db.mesas.length){const r=db.mesas.length-n,rm=mesaOrd().filter(m=>m.status==='livre').reverse().slice(0,r);if(rm.length<r)aviso('Só consegui remover '+rm.length+' mesa(s) livre(s); as outras estão em uso.');db.mesas=db.mesas.filter(m=>!rm.includes(m))}
+  save();renderMesas()});
+renderMesas();
 
 load();migra();mostraLogo();relogio();setInterval(relogio,15000);setHead('pedidos');renderResumo();renderLista();tab('inicio');boot();
 </script>
