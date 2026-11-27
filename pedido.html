@@ -177,7 +177,9 @@ let D={cats:[],prod:[],grp:[],bai:[],cfg:{}},cart=[],catSel='todos',od=null,tipo
 const aberta=()=>![false,'false'].includes(D.cfg.loja_aberta)&&![false,'false'].includes(D.cfg.caixa_aberto);
 let tt;function toast(m){const e=$('#toast');e.textContent=m;e.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('on'),1400)}
 const zapNum=()=>{let t=String(D.cfg.whatsapp||'').replace(/\D/g,'');if(t&&t.length<=11)t='55'+t;return t};
-const gruposDe=p=>(p.grupos||[]).map(id=>D.grp.find(g=>g.id===id)).filter(g=>g&&(g.itens||[]).length);
+const gruposDe=p=>(p.grupos||[]).map(id=>D.grp.find(g=>g.id===id)).filter(g=>g&&g.disp!==false&&(g.itens||[]).some(a=>a.disp!==false)).map(g=>({...g,itens:g.itens.filter(a=>a.disp!==false)}));
+const gMax=g=>g.maximo==null?20:Math.max(1,+g.maximo||1),gSel=g=>g.tipo==='selecao',gMin=g=>{const m=Math.max(0,+g.minimo||0);return gSel(g)?Math.min(m,g.itens.length):m};
+const gQtd=g=>g.itens.reduce((s,a)=>s+(od.adds[a.id]||0),0);
 const precoLbl=p=>(p.vars||[]).length?`<small>a partir de</small> ${brl(Math.min(...p.vars.map(v=>+v.preco)))}`:brl(p.preco);
 const addTxt=a=>(a.qtd>1?a.qtd+'x ':'')+a.nome;
 const sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},ld=k=>{try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}};
@@ -186,9 +188,9 @@ $('#tema').onclick=()=>{const t=document.documentElement.dataset.theme==='light'
 async function load(){
   try{
     const q=t=>sb.from(t).select('*');
-    const R=await Promise.all([q('pdv_categorias').order('ordem'),q('pdv_produtos'),q('pdv_grupos'),q('pdv_bairros').order('nome'),q('pdv_config')]);
+    const R=await Promise.all([q('pdv_categorias').order('ordem'),q('pdv_produtos').order('ordem'),q('pdv_grupos').order('ordem'),q('pdv_bairros').order('nome'),q('pdv_config')]);
     R.forEach(r=>{if(r.error)throw r.error});
-    D={cats:R[0].data,prod:R[1].data,grp:R[2].data,bai:R[3].data,cfg:Object.fromEntries(R[4].data.map(r=>[r.chave,r.valor]))};
+    const off=new Set(R[0].data.filter(c=>c.disp===false).map(c=>c.id));D={cats:R[0].data.filter(c=>c.disp!==false),prod:R[1].data.filter(p=>!off.has(p.cat_id)),grp:R[2].data,bai:R[3].data,cfg:Object.fromEntries(R[4].data.map(r=>[r.chave,r.valor]))};
     cabeca();render();
   }catch(e){$('#lista').innerHTML='<div class="vazio" style="grid-column:1/-1">Não consegui carregar o cardápio. Verifique sua internet e atualize a página.</div>'}
 }
@@ -209,7 +211,7 @@ function render(){
   $('#cats').innerHTML=com.length?[{id:'todos',nome:'Tudo',imagem:''},...com].map(c=>`<button class="chip${catSel===c.id?' on':''}" data-c="${c.id}">${c.imagem?`<img src="${esc(c.imagem)}" alt="" loading="lazy">`:''}${esc(c.nome)}</button>`).join(''):'';
   const cs=$('#cats'),on=cs.querySelector('.on');if(on)cs.scrollLeft=on.offsetLeft-24;
   const t=$('#q').value.trim().toLowerCase(),l=D.prod.filter(p=>p.disp&&(catSel==='todos'||p.cat_id===catSel)&&(!t||p.nome.toLowerCase().includes(t)))
-    .sort((a,b)=>(D.cats.findIndex(c=>c.id===a.cat_id)+1||99)-(D.cats.findIndex(c=>c.id===b.cat_id)+1||99)||a.nome.localeCompare(b.nome,'pt-BR'));
+    .sort((a,b)=>(D.cats.findIndex(c=>c.id===a.cat_id)+1||99)-(D.cats.findIndex(c=>c.id===b.cat_id)+1||99)||(a.ordem||0)-(b.ordem||0)||a.nome.localeCompare(b.nome,'pt-BR'));
   const gr=new Map();l.forEach(p=>{const n=(D.cats.find(c=>c.id===p.cat_id)||{}).nome||'Outros';if(!gr.has(n))gr.set(n,[]);gr.get(n).push(p)});
   $('#lista').innerHTML=[...gr].map(([n,ps])=>(catSel==='todos'&&!t&&gr.size>1?`<h3 class="gh">${esc(n)}</h3>`:'')+ps.map(card).join('')).join('')||'<div class="vazio" style="grid-column:1/-1">Nenhum item encontrado.</div>';
   const n=cart.reduce((s,l)=>s+l.qtd,0);$('#cc').hidden=!n;$('#cc').textContent=n;$('#cartbar').hidden=!n||!$('#track').hidden;
@@ -229,18 +231,23 @@ function poe(l){const k=JSON.stringify([l.pid,l.varId,l.adds,l.obs]),e=cart.find
 /* opções do produto */
 function abreOpt(p){od={p,varId:'',adds:{},obs:'',qtd:1};desenhaOpt();$('#optdlg').showModal()}
 function desenhaOpt(){
-  const{p}=od,gs=gruposDe(p),obrig=(p.vars||[]).length&&!od.varId,v=(p.vars||[]).find(x=>x.id===od.varId);
+  const{p}=od,gs=gruposDe(p),obrig=((p.vars||[]).length&&!od.varId)||gs.some(g=>gQtd(g)<gMin(g)),v=(p.vars||[]).find(x=>x.id===od.varId);
   const un=((p.vars||[]).length?(v?+v.preco:0):+p.preco)+gs.reduce((s,g)=>s+g.itens.reduce((t,a)=>t+(od.adds[a.id]||0)*a.preco,0),0);
   $('#optdlg').innerHTML=`<div class="oh${p.imagem?' im':''}"${p.imagem?` style="--img:url('${esc(p.imagem)}')"`:''}><div class="ot"><h2>${esc(p.nome)}</h2>${p.descricao?`<p>${esc(p.descricao)}</p>`:''}</div><button class="x" data-close aria-label="Fechar">×</button></div><div class="db">
    ${(p.vars||[]).length?`<div class="gt">Escolha uma opção · obrigatório</div>${p.vars.map(x=>`<div class="opt v${od.varId===x.id?' on':''}" data-v="${x.id}"><i class="rd"></i><span>${esc(x.nome)}</span><small>${brl(x.preco)}</small></div>`).join('')}`:''}
-   ${gs.map(g=>`<div class="gt">${esc(g.nome)}</div>${g.itens.map(a=>`<div class="opt"><span>${esc(a.nome)}</span><small>+ ${brl(a.preco)}</small><div class="st"><button data-a="${a.id}" data-d="-1">−</button><b>${od.adds[a.id]||0}</b><button data-a="${a.id}" data-d="1">+</button></div></div>`).join('')}`).join('')}
+   ${gs.map(g=>{const n=gQtd(g),mn=gMin(g),mx=gMax(g),rg=mn===mx?mx:(mn>0?'de '+mn+' a '+mx:'até '+mx);return `<div class="gt">${esc(g.nome)}${mn>0?' · obrigatório':''} · ${gSel(g)?'escolha ':'adicione '}${rg}${n<mn?' (faltam '+(mn-n)+')':''}</div>${g.itens.map(a=>`<div class="opt${gSel(g)&&od.adds[a.id]?' on':''}"><span>${esc(a.nome)}${a.desc?`<br><small>${esc(a.desc)}</small>`:''}</span><small>${a.preco?'+ '+brl(a.preco):''}</small><div class="st">${gSel(g)?`<button data-a="${a.id}" data-d="1" aria-label="${od.adds[a.id]?'Remover':'Escolher'} ${esc(a.nome)}">${od.adds[a.id]?'✓':'+'}</button>`:`<button data-a="${a.id}" data-d="-1">−</button><b>${od.adds[a.id]||0}</b><button data-a="${a.id}" data-d="1">+</button>`}</div></div>`).join('')}`}).join('')}
    <label for="oobs">Alguma observação?</label><input id="oobs" value="${esc(od.obs)}" placeholder="Ex.: sem cebola, bem passado"></div>
    <div class="df"><div class="st"><button data-q="-1">−</button><b>${od.qtd}</b><button data-q="1">+</button></div><button class="b p" data-ok ${obrig?'disabled':''}>Adicionar · ${brl(un*od.qtd)}</button></div>`;
 }
 $('#optdlg').onclick=e=>{
   const v=e.target.closest('[data-v]'),a=e.target.closest('[data-a]'),q=e.target.closest('[data-q]'),keep=()=>{const i=$('#oobs');if(i)od.obs=i.value};
   if(v){keep();od.varId=v.dataset.v;desenhaOpt()}
-  else if(a){keep();const id=a.dataset.a;od.adds[id]=Math.max(0,(od.adds[id]||0)+ +a.dataset.d);desenhaOpt()}
+  else if(a){keep();const id=a.dataset.a,d=+a.dataset.d,g=gruposDe(od.p).find(x=>x.itens.some(i=>i.id===id)),mx=g?gMax(g):99,n=g?gQtd(g):0;
+    if(d<0)od.adds[id]=Math.max(0,(od.adds[id]||0)-1);
+    else if(g&&gSel(g)&&od.adds[id])od.adds[id]=0;
+    else if(g&&n>=mx){if(gSel(g)&&mx===1){g.itens.forEach(i=>od.adds[i.id]=0);od.adds[id]=1}else toast('Máximo de '+mx+' em '+g.nome)}
+    else od.adds[id]=(od.adds[id]||0)+1;
+    desenhaOpt()}
   else if(q){keep();od.qtd=Math.max(1,od.qtd+ +q.dataset.q);desenhaOpt()}
   else if(e.target.closest('[data-ok]')){poe({pid:od.p.id,varId:od.varId,adds:Object.fromEntries(Object.entries(od.adds).filter(([,n])=>n>0)),obs:$('#oobs').value.trim(),qtd:od.qtd});$('#optdlg').close()}
   else if(e.target.closest('[data-close]')||e.target===$('#optdlg'))$('#optdlg').close();
