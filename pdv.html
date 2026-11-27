@@ -777,7 +777,7 @@ function renderLista(){
   const f=$('#filtro').value;
   const cols=[[0,'Em preparo','Os pedidos novos chegam aqui.'],[2,'Em rota de entrega','Arraste para cá quando o pedido sair.'],[3,'Pedido finalizado','Arraste para cá quando o motoboy voltar.']];
   $('#lista').innerHTML=cols.map(([g,t,vz])=>{
-    let l=db.orders.filter(o=>o.tipo!=='mesa'&&grupo(o)===g);
+    let l=db.orders.filter(o=>o.tipo!=='mesa'&&grupo(o)===g&&naSessao(o));
     if(g===3){l=l.reverse();if(f==='hoje')l=l.filter(o=>hoje(o.criado))}
     return `<div class="col c${g}" data-col="${g}"><h3><i class="dot"></i>${t}<span class="cnt">${l.length}</span></h3>${l.length?l.map(cartao).join(''):'<div class="vazio">'+vz+'</div>'}</div>`;
   }).join('');
@@ -810,7 +810,7 @@ function relEntregas(){
 $('#rpdlg').onclick=e=>{const b=e.target.closest('button');if(b&&b.dataset.r==='x')$('#rpdlg').close()};
 $('#rpdlg').onchange=e=>{if(e.target.id==='rpdia')relEntregas()};
 $('#btnEnt').onclick=()=>{relEntregas();$('#rpdlg').showModal()};
-{const base=renderLista;renderLista=function(){base();$('#limpaCanc').hidden=!db.orders.some(o=>o.status===4)}}
+
 $('#filtro').onchange=renderLista;
 $('#limpaCanc').onclick=async()=>{
   const n=db.orders.filter(o=>o.status===4).length;
@@ -1903,7 +1903,7 @@ async function fechaCaixa(){
     const c2={...CX,fechado_em:new Date().toISOString(),fechado_por:$('#fc_n').value.trim(),valor_contado:num($('#fc_v').value),obs:$('#fc_o').value.trim()};
     const r=await sb.from('pdv_caixas').update({status:'fechado',fechado_em:c2.fechado_em,fechado_por:c2.fechado_por,valor_contado:c2.valor_contado,obs:c2.obs,resumo:R}).eq('id',CX.id);
     if(r.error){aviso('Não consegui fechar: '+r.error.message);return false}
-    CX=null;MOVS=[];renderCaixa();hdrCaixa();
+    CX=null;MOVS=[];renderCaixa();hdrCaixa();renderLista();
     imprimirTicket(ticketCx('FECHAMENTO DE CAIXA',linhasFech(c2,R),'Assinatura do responsavel')).catch(e=>aviso('Caixa fechado, mas a comanda não imprimiu: '+(e.message||e)));
   },'Fechar caixa');
 }
@@ -2006,6 +2006,7 @@ $('#lojaChip').onclick=async()=>{const v=!lojaAb();try{await cfgSet('loja_aberta
 $('#pstrip').onclick=e=>{const b=e.target.closest('[data-go]');if(b)tab(b.dataset.go)};
 {const rt=renderTudo;renderTudo=function(){rt();if(!$('#inicio').hidden)renderInicio();hdrLoja()}}
 function renderInicio(){
+  db.orders=db.orders||[];db.mesas=db.mesas||[];
   const hj=new Date().toDateString(),os=db.orders.filter(o=>new Date(o.criado).toDateString()===hj&&o.status!==4),fin=os.filter(o=>o.status===3),fat=fin.reduce((s,o)=>s+totalPedido(o),0);
   const K=[['Pedidos hoje',os.length],['Faturamento hoje',brl(fat)],['Ticket médio hoje',brl(fin.length?fat/fin.length:0)],['Pedidos em andamento',db.orders.filter(o=>o.status<3).length],['Mesas ocupadas',db.mesas.filter(m=>m.status!=='livre').length],['Caixa',CX?'Aberto':'Fechado']];
   const SH=[['pedidos','pedidos','Pedidos']],ST=['Em preparo','Em preparo','Em rota','Finalizado','Cancelado'];
@@ -2113,6 +2114,7 @@ setInterval(async()=>{const H=CFGC.horario;if(!H||!H.on)return;const v=deveAbrir
 hdrLoja=function(){const e=$('#lojaChip');if(!e)return;const a=lojaAb();e.className='hch'+(a?'':' off');e.innerHTML=`<i class="tgl"></i>${a?'Loja aberta':'Loja fechada'}`};
 hdrCaixa=function(){const e=$('#cxChip');e.className='hch'+(CX?'':' off');e.innerHTML=`<i class="tgl"></i><span id="cxTxt">${CX?'Caixa aberto':'Caixa fechado'}</span><span id="resumo" hidden></span>`};
 hdrCaixa();hdrLoja();
+const naSessao=o=>o.status<3||(!!CX&&(o.caixaId===CX.id||(!o.caixaId&&hoje(o.criado))));
 let mfil='todas';
 {const mb=$('#addMesa').closest('.bar');mb.id='mbar';mb.style.flexWrap='wrap';
  mb.innerHTML='<input id="msq" type="search" placeholder="Pesquisar mesa…" style="max-width:220px"><div class="chips" id="mf" style="margin:0"></div><button class="b" id="mtela" style="margin-left:auto">Tela cheia</button>';
@@ -2142,7 +2144,6 @@ $('#p_salvar').addEventListener('click',()=>{
   if(n>db.mesas.length){while(db.mesas.length<n)db.mesas.push({id:uid(),numero:String(++mx),status:'livre'})}
   else if(n<db.mesas.length){const r=db.mesas.length-n,rm=mesaOrd().filter(m=>m.status==='livre').reverse().slice(0,r);if(rm.length<r)aviso('Só consegui remover '+rm.length+' mesa(s) livre(s); as outras estão em uso.');db.mesas=db.mesas.filter(m=>!rm.includes(m))}
   save();renderMesas()});
-renderMesas();
 
 load();migra();mostraLogo();relogio();setInterval(relogio,15000);setHead('pedidos');renderResumo();renderLista();tab('inicio');boot();
 </script>
