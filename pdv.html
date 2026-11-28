@@ -292,8 +292,6 @@ main>section{max-width:none!important}
 #mf button.on{background:var(--hov);box-shadow:inset 0 0 0 1px currentColor}
 #mf .bdg{font-size:.62rem;border-radius:99px;padding:1px 6px;background:currentColor}#mf .bdg i{font-style:normal;color:var(--bg)}
 /* v7 */
-#hl .hch.off span:not([hidden]){display:inline!important}
-#rfBtn[hidden]{display:none!important}
 .tipb{position:relative}
 .tipb:hover::after,.tipb:focus-visible::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#000;color:#fff;font:600 .7rem/1 inherit;padding:5px 8px;border-radius:5px;white-space:nowrap;z-index:80;pointer-events:none}
 #sub-produtos .box,#sub-categorias .box,#sub-opcionais .box,#clientes .box,#gdlg .box{overflow:visible!important}
@@ -322,6 +320,11 @@ label[data-req="1"]::after{content:" *";color:var(--bad)}
 #cxabre{width:min(480px,94vw)}
 #hl .hch.gr{border-color:var(--bd2)!important;color:var(--mut)!important}
 .ad[data-o=tog]{cursor:pointer}.chk{width:22px;height:22px;border:2px solid var(--line);border-radius:6px;display:grid;place-items:center;flex:none}.chk.on{background:var(--g);border-color:var(--g);color:var(--accink)}.chk .ic{width:14px;height:14px}
+
+#hl .hch.off span:not([hidden]){display:inline!important}
+#rfBtn[hidden]{display:none!important}
+.b[data-save]:disabled{background:var(--bg2)!important;color:var(--mut)!important;border-color:var(--line)!important;cursor:not-allowed;opacity:1;box-shadow:none}
+.b[data-save]:not(:disabled){cursor:pointer}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
 </head>
@@ -2196,6 +2199,7 @@ $('#p_salvar').addEventListener('click',()=>{
   else if(n<db.mesas.length){const r=db.mesas.length-n,rm=mesaOrd().filter(m=>m.status==='livre').reverse().slice(0,r);if(rm.length<r)aviso('Só consegui remover '+rm.length+' mesa(s) livre(s); as outras estão em uso.');db.mesas=db.mesas.filter(m=>!rm.includes(m))}
   save();renderMesas()});
 
+
 /* ===== v7: caixa em modal, estoque (produtos/categorias/opcionais) e usuários no layout CompraAgora ===== */
 document.body.insertAdjacentHTML('beforeend','<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol><symbol id="i-grip" viewBox="0 0 24 24"><path d="M12 4v16M8 8l4-4 4 4M8 16l4 4 4-4"/></symbol><symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></symbol></svg>');
 document.body.insertAdjacentHTML('beforeend','<dialog id="cxmodal" class="wide"><div class="mdh"><h2>Caixa</h2><button type="button" class="ib2" data-x aria-label="Fechar">'+I('x')+'</button></div><div id="cxmbody"></div></dialog><dialog id="cxabre"></dialog><dialog id="cxhist" class="wide"></dialog><dialog id="cdlg"></dialog><dialog id="gdlg" class="wide"></dialog><dialog id="odlg2"></dialog><dialog id="usinfo"></dialog><dialog id="ushist" class="wide"></dialog>');
@@ -2300,9 +2304,82 @@ $('#medit').onclick=async e=>{
 };
 dragSort($('#medit'),'.mr','.gh',ids=>{reordena(db.menu,ids);save();renderMenu()});
 
+/* ---------- Cadastros com rascunho: Salvar só habilita quando há alteração ---------- */
+const J=JSON.stringify,CONF='Descartar as alterações não salvas?';
+const svBtn=(d,on)=>{const b=d.querySelector('[data-save]');if(b){b.disabled=!on;b.classList.toggle('p',!!on)}};
+function guard(d,dirty){
+  d.addEventListener('click',async e=>{if(e.target.closest('[data-x]')&&dirty()){e.stopImmediatePropagation();if(await confirma(CONF))d.close()}},true);
+  d.addEventListener('cancel',async e=>{if(dirty()){e.preventDefault();if(await confirma(CONF))d.close()}});
+}
+const semUso=u=>{if(u&&!usadaOutro(null,u)){const p=fotoPath(u);if(p)sb.storage.from('cardapio').remove([p])}};
+const BTNS=(extra)=>`<div class="acoes">${extra||''}<span style="margin-left:auto;display:flex;gap:8px"><button type="button" class="b" data-save disabled>Salvar</button><button type="button" class="b" data-x>Fechar</button></span></div>`;
+const fotoHtml=(u,tag,alt)=>`<div class="pimg">${u?`<img src="${esc(u)}" alt="${alt}">`:'<span class="h">Sem foto</span>'}<label class="b">${u?'Trocar foto':'Escolher foto'}<input type="file" accept="image/*" data-f="${tag}" hidden></label>${u?`<button type="button" class="b d" data-a="${tag}del">Remover foto</button>`:''}</div>`;
+
+/* produto */
+let PD=null,PS='',PN=false,PUP=[];
+const pDirty=()=>!!PD&&J(PD)!==PS,pSync=()=>svBtn($('#pdlg'),pDirty());
+prowHtml=function(m){
+  const vs=m.vars||[];
+  return `<h2>${PN?'Cadastrar produto':'Editar produto'}</h2><div class="prow" data-id="${m.id}">
+    <div class="mrow">
+      <input value="${esc(m.nome)}" data-f="nome" placeholder="Nome do produto" aria-label="Nome do produto">
+      <input value="${vs.length?'':(m.preco||!PN?String(m.preco).replace('.',','):'')}" data-f="preco" inputmode="decimal" aria-label="Preço" ${vs.length?'disabled placeholder="Por escolha"':'placeholder="Preço"'}>
+      ${PN?'':`<button class="b d" data-a="del" aria-label="Remover ${esc(m.nome)}">Remover</button>`}
+    </div>
+    <div class="pmeta"><select data-f="cat" aria-label="Categoria"><option value="">Sem categoria</option>${db.cats.map(c=>`<option value="${c.id}"${m.cat===c.id?' selected':''}>${esc(c.nome)}</option>`).join('')}</select></div>
+    <textarea data-f="desc" rows="2" placeholder="Descrição do produto (aparece na hora de escolher no PDV)" aria-label="Descrição">${esc(m.desc||'')}</textarea>
+    <div class="pimg">${m.imagem?`<img src="${esc(m.imagem)}" alt="Foto de ${esc(m.nome)}">`:'<span class="h">Sem foto</span>'}<label class="b">${m.imagem?'Trocar foto':'Escolher foto'}<input type="file" accept="image/*" data-f="foto" hidden></label>${m.imagem?'<button type="button" class="b d" data-a="delfoto">Remover foto</button>':''}</div>
+    <div class="vars">
+      ${vs.length?'<small class="h">Escolha obrigatória (o preço vem da escolha):</small>':''}
+      ${vs.map(v=>`<div class="mrow vr" data-v="${v.id}">
+        <input value="${esc(v.nome)}" data-f="vnome" aria-label="Nome da escolha">
+        <input value="${String(v.preco).replace('.',',')}" data-f="vpreco" inputmode="decimal" aria-label="Valor da escolha">
+        <button class="b d" data-a="delv" aria-label="Remover escolha ${esc(v.nome)}">Remover</button></div>`).join('')}
+      <button class="b" data-a="addv">${vs.length?'Adicionar escolha':'Adicionar escolha obrigatória (ex.: tamanho)'}</button>
+    </div>
+    ${db.grupos.length?`<small class="h">Opcionais deste produto:</small><div class="chips">${db.grupos.map(g=>{const on=(m.grupos||[]).includes(g.id);
+      return `<button class="chip${on?' on':''}" aria-pressed="${on}" data-a="vinc" data-g="${g.id}">${esc(g.nome)}</button>`}).join('')}</div>`:''}
+  </div>`;
+};
+const pRe=()=>{$('#pbody').innerHTML=prowHtml(PD);pSync()};
+abreProd=function(id,novo){
+  const o=novo?null:db.menu.find(x=>x.id===id);if(!novo&&!o)return;
+  PD=novo||JSON.parse(J(o));PD.desc=PD.desc||'';PD.imagem=PD.imagem||'';PD.vars=PD.vars||[];PD.grupos=PD.grupos||[];PD.cat=PD.cat||'';
+  PN=!!novo;PS=J(PD);PUP=[];pRe();if(!$('#pdlg').open)$('#pdlg').showModal();
+};
+$('#pfecha').insertAdjacentHTML('beforebegin','<button type="button" class="b" id="psave" data-save disabled>Salvar</button>');
+$('#pfecha').onclick=async()=>{if(!pDirty()||await confirma(CONF))$('#pdlg').close()};
+$('#pdlg').addEventListener('cancel',async e=>{if(pDirty()){e.preventDefault();if(await confirma(CONF))$('#pdlg').close()}});
+$('#pdlg').addEventListener('close',()=>{PUP.forEach(semUso);PUP=[];PD=null;PS='';pnew='';renderMenu()});
+$('#pbody').oninput=e=>{const f=e.target.dataset.f;if(!PD||!f)return;
+  if(f==='nome')PD.nome=e.target.value;
+  else if(f==='preco')PD.preco=num(e.target.value);
+  else if(f==='desc')PD.desc=e.target.value;
+  else if(f==='vnome'||f==='vpreco'){const v=PD.vars.find(x=>x.id===e.target.closest('.vr').dataset.v);if(v){if(f==='vnome')v.nome=e.target.value;else v.preco=num(e.target.value)}}
+  else return;pSync()};
+$('#pbody').onchange=async e=>{const f=e.target.dataset.f;if(!PD||!f)return;
+  if(f==='foto'){const file=e.target.files[0];e.target.value='';if(!file)return;
+    try{const u=await upFoto(file,PD.id);PUP.push(u);PD.imagem=u;pRe()}catch(x){aviso('Não consegui enviar a foto: '+(x.message||x))}return}
+  if(f==='cat')PD.cat=e.target.value;
+  else if(f==='preco')e.target.value=String(PD.preco).replace('.',',');
+  else if(f==='vpreco'){const v=PD.vars.find(x=>x.id===e.target.closest('.vr').dataset.v);if(v)e.target.value=String(v.preco).replace('.',',')}
+  pSync()};
+$('#pbody').onclick=async e=>{const b=e.target.closest('button');if(!b||!PD)return;const a=b.dataset.a;
+  if(a==='delfoto'){PD.imagem='';pRe()}
+  else if(a==='vinc'){const g=b.dataset.g;PD.grupos=PD.grupos.includes(g)?PD.grupos.filter(x=>x!==g):[...PD.grupos,g];pRe();const q=$('#pbody [data-g="'+g+'"]');if(q)q.focus()}
+  else if(a==='addv'){PD.vars.push({id:uid(),nome:'Nova escolha',preco:0});pRe();const i=$$('#pbody input[data-f="vnome"]'),u=i[i.length-1];u.focus();u.select()}
+  else if(a==='delv'){const vid=b.closest('.vr').dataset.v,v=PD.vars.find(x=>x.id===vid);if(await confirma('Remover a escolha “'+v.nome+'”?')){PD.vars=PD.vars.filter(x=>x.id!==vid);pRe()}}
+  else if(a==='del'&&await confirma('Remover “'+PD.nome+'” do estoque?')){const id=PD.id;db.menu=db.menu.filter(x=>x.id!==id);cart=cart.filter(l=>l.menuId!==id);save();PS=J(PD);$('#pdlg').close()}};
+$('#psave').onclick=()=>{if(!PD||!pDirty())return;
+  const nome=(PD.nome||'').trim();if(!nome){aviso('Informe o nome do produto.');return}
+  PD.nome=nome;PD.desc=(PD.desc||'').trim();
+  const o=db.menu.find(x=>x.id===PD.id),velha=o&&o.imagem!==PD.imagem?o.imagem:'',c=JSON.parse(J(PD));
+  if(o)Object.assign(o,c);else db.menu.push(c);
+  save();renderMenu();PN=false;PS=J(PD);pRe();notif('Produto salvo ✓');if(velha)semUso(velha)};
+$('#addItem').onclick=()=>{abreProd(null,{id:uid(),nome:'',preco:0,grupos:[],vars:[],cat:['todos','sem'].includes(pfSel)?'':pfSel,desc:'',imagem:''});const i=$('#pbody input[data-f="nome"]');i.focus()};
+
 /* ---------- Estoque: categorias ---------- */
 $('#sub-categorias').innerHTML=`<div class="box" style="padding:10px"><div class="bar" style="margin:0"><input id="csrch" type="search" autocomplete="off" placeholder="Pesquisar categoria..." aria-label="Pesquisar categoria" style="flex:1"><button class="b p" id="addCat" type="button">Cadastrar</button></div></div><div class="box" style="padding:0"><div id="cedit"></div></div>`;
-let cnew='';
 renderCats=function(){
   const q=norm(($('#csrch')||{}).value||''),l=db.cats.filter(c=>!q||norm(c.nome).includes(q));
   $('#cedit').innerHTML=l.length?'<div class="mh c4"><span>Categoria</span><span>Disponibilidade</span><span>Opções</span><span>Posição</span></div>'+l.map(c=>{const on=c.disp!==false;
@@ -2310,29 +2387,30 @@ renderCats=function(){
     :'<div class="vazio">Nenhuma categoria ainda. Use “Cadastrar”, por exemplo “Sanduíches”.</div>';
 };
 $('#csrch').oninput=renderCats;
-function abreCat(id){
-  const c=db.cats.find(x=>x.id===id);if(!c)return;const d=$('#cdlg');
-  d.innerHTML=`<div class="mdh"><h2>${cnew===id?'Cadastrar categoria':'Editar categoria'}</h2>${bX()}</div><div data-id="${c.id}">
-  <label for="c_nome">Nome</label><input id="c_nome" value="${esc(c.nome)}" autocomplete="off">
-  <div class="pimg">${c.imagem?`<img src="${esc(c.imagem)}" alt="Foto da categoria">`:'<span class="h">Sem foto</span>'}<label class="b">${c.imagem?'Trocar foto':'Escolher foto'}<input type="file" accept="image/*" data-f="cfoto" hidden></label>${c.imagem?'<button type="button" class="b d" data-a="cdelfoto">Remover foto</button>':''}</div>
-  <label class="tg"><input type="checkbox" id="c_disp"${c.disp!==false?' checked':''}> Disponível (aparece no PDV e no site)</label></div>
-  <div class="acoes" style="justify-content:flex-end"><button type="button" class="b p" data-x>Fechar</button></div>`;
-  if(!d.open)d.showModal();
+let CD=null,CS='',CN=false,CUP=[];
+const cDirty=()=>!!CD&&J(CD)!==CS,cSync=()=>svBtn($('#cdlg'),cDirty());
+const catHtml=()=>`<div class="mdh"><h2>${CN?'Cadastrar categoria':'Editar categoria'}</h2>${bX()}</div><div>
+  <label for="c_nome">Nome</label><input id="c_nome" value="${esc(CD.nome)}" placeholder="Nome da categoria" autocomplete="off">
+  ${fotoHtml(CD.imagem,'cfoto','Foto da categoria')}
+  <label class="tg"><input type="checkbox" id="c_disp"${CD.disp!==false?' checked':''}> Disponível (aparece no PDV e no site)</label></div>${BTNS()}`;
+const reCat=()=>{$('#cdlg').innerHTML=catHtml();cSync()};
+function abreCat(id,novo){
+  const o=novo?null:db.cats.find(x=>x.id===id);if(!novo&&!o)return;
+  CD=novo||JSON.parse(J(o));CD.imagem=CD.imagem||'';CD.disp=CD.disp!==false;CN=!!novo;CS=J(CD);CUP=[];reCat();if(!$('#cdlg').open)$('#cdlg').showModal();
 }
-$('#cdlg').addEventListener('change',async e=>{
-  const w=e.target.closest('[data-id]'),c=w&&db.cats.find(x=>x.id===w.dataset.id);if(!c)return;
-  if(e.target.id==='c_nome'){c.nome=e.target.value.trim()||c.nome;e.target.value=c.nome;save()}
-  else if(e.target.id==='c_disp'){c.disp=e.target.checked;save()}
-  else if(e.target.dataset.f==='cfoto'){const f=e.target.files[0];e.target.value='';await subirFotoCat(c,f);abreCat(c.id)}
-});
-$('#cdlg').addEventListener('click',async e=>{
-  const b=e.target.closest('[data-a="cdelfoto"]');if(!b)return;const c=db.cats.find(x=>x.id===b.closest('[data-id]').dataset.id);
-  if(c&&await confirma('Remover a foto da categoria “'+c.nome+'”?')){tiraFotoCat(c);abreCat(c.id)}
-});
-$('#cdlg').addEventListener('close',()=>{
-  const c=db.cats.find(x=>x.id===cnew);if(c&&c.nome==='Nova categoria'&&!c.imagem){db.cats=db.cats.filter(x=>x!==c);save()}
-  cnew='';renderCats();
-});
+guard($('#cdlg'),cDirty);
+$('#cdlg').addEventListener('input',e=>{if(CD&&e.target.id==='c_nome'){CD.nome=e.target.value;cSync()}});
+$('#cdlg').addEventListener('change',async e=>{if(!CD)return;
+  if(e.target.id==='c_disp'){CD.disp=e.target.checked;cSync()}
+  else if(e.target.dataset.f==='cfoto'){const f=e.target.files[0];e.target.value='';if(!f)return;try{const u=await upFoto(f,'cat-'+CD.id);CUP.push(u);CD.imagem=u;reCat()}catch(x){aviso('Não consegui enviar a foto: '+(x.message||x))}}});
+$('#cdlg').addEventListener('click',e=>{if(!CD)return;
+  if(e.target.closest('[data-a="cfotodel"]')){CD.imagem='';reCat();return}
+  if(e.target.closest('[data-save]')&&cDirty()){
+    const nome=(CD.nome||'').trim();if(!nome){aviso('Informe o nome da categoria.');return}CD.nome=nome;
+    const o=db.cats.find(x=>x.id===CD.id),velha=o&&o.imagem!==CD.imagem?o.imagem:'',c=JSON.parse(J(CD));
+    if(o)Object.assign(o,c);else db.cats.push(c);
+    save();renderCats();CN=false;CS=J(CD);reCat();notif('Categoria salva ✓');if(velha)semUso(velha)}});
+$('#cdlg').addEventListener('close',()=>{CUP.forEach(semUso);CUP=[];CD=null;CS='';renderCats()});
 $('#cedit').onclick=async e=>{
   const b=e.target.closest('button[data-a]');if(!b)return;const id=b.closest('.mr').dataset.id,i=db.cats.findIndex(x=>x.id===id),c=db.cats[i];if(!c)return;const a=b.dataset.a;
   if(a==='disp'){c.disp=c.disp===false;save();renderCats()}
@@ -2342,11 +2420,10 @@ $('#cedit').onclick=async e=>{
     if(await confirma('Remover a categoria “'+c.nome+'”?'+(n?'\nOs '+n+' produto(s) dela ficam sem categoria.':''))){db.cats.splice(i,1);db.menu.forEach(m=>{if(m.cat===id)m.cat=''});save();renderCats()}}
 };
 dragSort($('#cedit'),'.mr','.gh',ids=>{reordena(db.cats,ids);save();renderCats()});
-$('#addCat').onclick=()=>{const c={id:uid(),nome:'Nova categoria',disp:true};db.cats.push(c);save();cnew=c.id;abreCat(c.id);const i=$('#c_nome');i.focus();i.select()};
+$('#addCat').onclick=()=>{abreCat(null,{id:uid(),nome:'',disp:true,imagem:''});$('#c_nome').focus()};
 
-/* ---------- Estoque: opcionais (grupos) ---------- */
+/* ---------- Estoque: opcionais (grupos) e opções ---------- */
 $('#sub-opcionais').innerHTML=`<div class="box" style="padding:10px"><div class="bar" style="margin:0"><input id="gsrch" type="search" autocomplete="off" placeholder="Pesquisar opcional..." aria-label="Pesquisar opcional" style="flex:1"><button class="b p" id="addGrupo" type="button">Cadastrar</button></div></div><div class="box" style="padding:0"><div id="gedit"></div></div>`;
-let gnew='',gcur='',onew='',ocur='';
 renderGrupos=function(){
   const q=norm(($('#gsrch')||{}).value||''),l=db.grupos.filter(g=>!q||norm(g.nome).includes(q));
   $('#gedit').innerHTML=l.length?'<div class="mh c4"><span>Opcional</span><span>Disponibilidade</span><span>Opções</span><span>Posição</span></div>'+l.map(g=>{const on=g.disp!==false,its=g.itens.map(a=>a.nome).join(', ');
@@ -2359,94 +2436,83 @@ function gOpsHtml(g){
     return `<div class="mr${on?'':' off'}" data-id="${a.id}" data-grp="o"><span class="mn">${bTh(a.imagem)}<span><span>${esc(a.nome)}</span>${a.desc?`<small>${esc(a.desc)}</small>`:''}</span></span><span class="mp">R$ ${fp(a.preco)}</span><span>${bSw(on,'disp','Disponível: '+a.nome)}</span><span class="ops">${bIc('edit','edit','Editar')}${bIc('dup','copy','Duplicar')}${bIc('del','trash','Remover')}</span><span class="pos">${bGrip(a.nome)}</span></div>`}).join('')
     :'<div class="vazio">Nenhuma opção neste grupo. Use “Adicionar opção”.</div>';
 }
-function abreGrupo(id){
-  const g=db.grupos.find(x=>x.id===id);if(!g)return;gcur=id;const d=$('#gdlg');
-  d.innerHTML=`<div class="mdh"><h2>${gnew===id?'Cadastrar opcional':'Grupo de opções'}</h2>${bX()}</div>
-  <div class="gform" data-id="${g.id}">
-   <div class="gn"><label for="g_nome">Nome</label><input id="g_nome" value="${esc(g.nome)}" autocomplete="off"></div>
-   <div><label for="g_tipo">Tipo</label><select id="g_tipo"><option value="selecao"${gTipo(g)==='selecao'?' selected':''}>Seleção</option><option value="quantidade"${gTipo(g)==='quantidade'?' selected':''}>Quantidade</option></select></div>
-   <div><label for="g_min">Mínimo</label><input id="g_min" inputmode="numeric" value="${gMin(g)}"></div>
-   <div><label for="g_max">Máximo</label><input id="g_max" inputmode="numeric" value="${gMax(g)}"></div>
+let GD=null,GS='',GN=false,GUP=[];
+const gDirty=()=>!!GD&&J(GD)!==GS,gSync=()=>svBtn($('#gdlg'),gDirty());
+const gHtml=()=>`<div class="mdh"><h2>${GN?'Cadastrar opcional':'Grupo de opções'}</h2>${bX()}</div>
+  <div class="gform">
+   <div class="gn"><label for="g_nome">Nome</label><input id="g_nome" value="${esc(GD.nome)}" placeholder="Nome do grupo" autocomplete="off"></div>
+   <div><label for="g_tipo">Tipo</label><select id="g_tipo"><option value="selecao"${gTipo(GD)==='selecao'?' selected':''}>Seleção</option><option value="quantidade"${gTipo(GD)==='quantidade'?' selected':''}>Quantidade</option></select></div>
+   <div><label for="g_min">Mínimo</label><input id="g_min" inputmode="numeric" value="${gMin(GD)}"></div>
+   <div><label for="g_max">Máximo</label><input id="g_max" inputmode="numeric" value="${gMax(GD)}"></div>
   </div>
   <p class="h">Seleção: o cliente marca as opções (cada uma vale 1). Quantidade: cada opção pode ser adicionada várias vezes. Mínimo maior que 0 torna o grupo obrigatório.</p>
-  <div class="acoes"><button type="button" class="b" data-a="addop">Adicionar opção</button><button type="button" class="b p" data-a="gsalvar" style="margin-left:auto">Salvar</button></div>
-  <div class="box" style="padding:0"><div id="g_ops">${gOpsHtml(g)}</div></div>`;
-  if(!d.open)d.showModal();
+  ${BTNS('<button type="button" class="b" data-a="addop">Adicionar opção</button>')}
+  <div class="box" style="padding:0;margin-top:10px"><div id="g_ops">${gOpsHtml(GD)}</div></div>`;
+const reGrp=()=>{$('#gdlg').innerHTML=gHtml();gSync()};
+const gOps=()=>{$('#g_ops').innerHTML=gOpsHtml(GD);gSync()};
+function abreGrupo(id,novo){
+  const o=novo?null:db.grupos.find(x=>x.id===id);if(!novo&&!o)return;
+  GD=novo||JSON.parse(J(o));GD.tipo=gTipo(GD);GD.minimo=gMin(GD);GD.maximo=gMax(GD);GD.disp=GD.disp!==false;GD.itens=(GD.itens||[]).map(a=>({...a,desc:a.desc||'',imagem:a.imagem||'',disp:a.disp!==false}));
+  GN=!!novo;GS=J(GD);GUP=[];reGrp();if(!$('#gdlg').open)$('#gdlg').showModal();
 }
-const gRef=()=>{const g=db.grupos.find(x=>x.id===gcur);if(g)$('#g_ops').innerHTML=gOpsHtml(g);return g};
-$('#gdlg').addEventListener('change',e=>{
-  const g=db.grupos.find(x=>x.id===gcur);if(!g)return;const i=e.target.id;
-  if(i==='g_nome'){g.nome=e.target.value.trim()||g.nome;e.target.value=g.nome}
-  else if(i==='g_tipo')g.tipo=e.target.value;
-  else if(i==='g_min'){g.minimo=Math.max(0,nOr(e.target.value,0));e.target.value=g.minimo}
-  else if(i==='g_max'){g.maximo=Math.max(1,nOr(e.target.value,1));e.target.value=g.maximo}
-  else return;
-  save();
-});
-$('#gdlg').addEventListener('click',async e=>{
-  const g=db.grupos.find(x=>x.id===gcur);if(!g)return;
-  const gb=e.target.closest('[data-a="gsalvar"],[data-a="addop"]');
-  if(gb){
-    if(gb.dataset.a==='gsalvar'){const mn=gMin(g),mx=gMax(g);if(mn>mx){aviso('O mínimo não pode ser maior que o máximo.');return}$('#gdlg').close();notif('Opcional salvo ✓');return}
-    const a={id:uid(),nome:'Nova opção',preco:0,desc:'',disp:true};g.itens.push(a);save();gRef();onew=a.id;abreOp(a.id);const i=$('#o_nome');i.focus();i.select();return;
-  }
+guard($('#gdlg'),gDirty);
+$('#gdlg').addEventListener('input',e=>{if(!GD)return;const i=e.target.id;
+  if(i==='g_nome')GD.nome=e.target.value;else if(i==='g_min')GD.minimo=Math.max(0,nOr(e.target.value,0));else if(i==='g_max')GD.maximo=Math.max(1,nOr(e.target.value,1));else return;gSync()});
+$('#gdlg').addEventListener('change',e=>{if(!GD)return;const i=e.target.id;
+  if(i==='g_tipo')GD.tipo=e.target.value;else if(i==='g_min')e.target.value=GD.minimo;else if(i==='g_max')e.target.value=GD.maximo;else return;gSync()});
+$('#gdlg').addEventListener('click',async e=>{if(!GD)return;
+  if(e.target.closest('[data-save]')){
+    if(!gDirty())return;const nome=(GD.nome||'').trim();if(!nome){aviso('Informe o nome do opcional.');return}
+    if(gMin(GD)>gMax(GD)){aviso('O mínimo não pode ser maior que o máximo.');return}
+    GD.nome=nome;const o=db.grupos.find(x=>x.id===GD.id),c=JSON.parse(J(GD));
+    if(o)Object.assign(o,c);else db.grupos.push(c);
+    save();renderGrupos();GN=false;GS=J(GD);reGrp();notif('Opcional salvo ✓');return}
+  if(e.target.closest('[data-a="addop"]')){abreOp(null,{id:uid(),nome:'',preco:0,desc:'',imagem:'',disp:true});$('#o_nome').focus();return}
   const b=e.target.closest('#g_ops button[data-a]');if(!b)return;
-  const id=b.closest('.mr').dataset.id,i=g.itens.findIndex(x=>x.id===id),a=g.itens[i];if(!a)return;const k=b.dataset.a;
-  if(k==='disp'){a.disp=a.disp===false;save();gRef()}
+  const id=b.closest('.mr').dataset.id,i=GD.itens.findIndex(x=>x.id===id),a=GD.itens[i];if(!a)return;const k=b.dataset.a;
+  if(k==='disp'){a.disp=a.disp===false;gOps()}
   else if(k==='edit')abreOp(id);
-  else if(k==='dup'){g.itens.splice(i+1,0,{...a,id:uid(),nome:a.nome+' (cópia)'});save();gRef()}
-  else if(k==='del'&&await confirma('Remover a opção “'+a.nome+'”?')){g.itens.splice(i,1);save();gRef()}
+  else if(k==='dup'){GD.itens.splice(i+1,0,{...a,id:uid(),nome:a.nome+' (cópia)'});gOps()}
+  else if(k==='del'&&await confirma('Remover a opção “'+a.nome+'”?')){GD.itens.splice(i,1);gOps()}
 });
-dragSort($('#gdlg'),'#g_ops .mr','.gh',ids=>{const g=db.grupos.find(x=>x.id===gcur);if(g){reordena(g.itens,ids);save();gRef()}});
-$('#gdlg').addEventListener('close',()=>{
-  const g=db.grupos.find(x=>x.id===gnew);if(g&&g.nome==='Novo grupo'&&!g.itens.length){db.grupos=db.grupos.filter(x=>x!==g);save()}
-  gnew='';gcur='';renderGrupos();
-});
-function abreOp(id){
-  const g=db.grupos.find(x=>x.id===gcur),a=g&&g.itens.find(x=>x.id===id);if(!a)return;ocur=id;const d=$('#odlg2');
-  d.innerHTML=`<div class="mdh"><h2>${onew===id?'Cadastrar opção':'Editar opção'}</h2>${bX()}</div><div data-id="${a.id}">
-  <label for="o_nome">Nome</label><input id="o_nome" value="${esc(a.nome)}" autocomplete="off">
-  <label for="o_preco">Preço (R$)</label><input id="o_preco" inputmode="decimal" value="${fp(a.preco)}">
-  <label for="o_desc">Descrição</label><textarea id="o_desc" rows="2" placeholder="Opcional">${esc(a.desc||'')}</textarea>
-  <div class="pimg">${a.imagem?`<img src="${esc(a.imagem)}" alt="Foto da opção">`:'<span class="h">Sem foto</span>'}<label class="b">${a.imagem?'Trocar foto':'Escolher foto'}<input type="file" accept="image/*" data-f="ofoto" hidden></label>${a.imagem?'<button type="button" class="b d" data-a="odelfoto">Remover foto</button>':''}</div>
-  <label class="tg"><input type="checkbox" id="o_disp"${a.disp!==false?' checked':''}> Disponível</label></div>
-  <div class="acoes" style="justify-content:flex-end"><button type="button" class="b p" data-x>Fechar</button></div>`;
-  if(!d.open)d.showModal();
+dragSort($('#gdlg'),'#g_ops .mr','.gh',ids=>{if(GD){reordena(GD.itens,ids);gOps()}});
+$('#gdlg').addEventListener('close',()=>{GUP.forEach(semUso);GUP=[];GD=null;GS='';renderGrupos()});
+let OD=null,OS='',ON=false,OUP=[];
+const oDirty=()=>!!OD&&J(OD)!==OS,oSync=()=>svBtn($('#odlg2'),oDirty());
+const opHtml=()=>`<div class="mdh"><h2>${ON?'Cadastrar opção':'Editar opção'}</h2>${bX()}</div><div>
+  <label for="o_nome">Nome</label><input id="o_nome" value="${esc(OD.nome)}" placeholder="Nome da opção" autocomplete="off">
+  <label for="o_preco">Preço (R$)</label><input id="o_preco" inputmode="decimal" value="${OD.preco||!ON?fp(OD.preco):''}" placeholder="0,00">
+  <label for="o_desc">Descrição</label><textarea id="o_desc" rows="2" placeholder="Opcional">${esc(OD.desc||'')}</textarea>
+  ${fotoHtml(OD.imagem,'ofoto','Foto da opção')}
+  <label class="tg"><input type="checkbox" id="o_disp"${OD.disp!==false?' checked':''}> Disponível</label></div>${BTNS()}`;
+const reOp=()=>{$('#odlg2').innerHTML=opHtml();oSync()};
+function abreOp(id,novo){
+  const a=novo?null:GD&&GD.itens.find(x=>x.id===id);if(!novo&&!a)return;
+  OD=novo||JSON.parse(J(a));OD.desc=OD.desc||'';OD.imagem=OD.imagem||'';OD.disp=OD.disp!==false;ON=!!novo;OS=J(OD);OUP=[];reOp();if(!$('#odlg2').open)$('#odlg2').showModal();
 }
-const opRef=()=>{const g=db.grupos.find(x=>x.id===gcur);return g&&g.itens.find(x=>x.id===ocur)};
-$('#odlg2').addEventListener('change',async e=>{
-  const a=opRef();if(!a)return;const i=e.target.id;
-  if(i==='o_nome'){a.nome=e.target.value.trim()||a.nome;e.target.value=a.nome}
-  else if(i==='o_preco'){a.preco=num(e.target.value);e.target.value=fp(a.preco)}
-  else if(i==='o_desc')a.desc=e.target.value.trim();
-  else if(i==='o_disp')a.disp=e.target.checked;
-  else if(e.target.dataset.f==='ofoto'){
-    const f=e.target.files[0];e.target.value='';if(!f)return;
-    try{const velha=usadaOutro(a,a.imagem)?'':fotoPath(a.imagem);a.imagem=await upFoto(f,'opc-'+a.id);if(velha)sb.storage.from('cardapio').remove([velha])}
-    catch(x){aviso('Não consegui enviar a foto: '+(x.message||x))}
-    save();abreOp(a.id);return;
-  }
-  else return;
-  save();
-});
-$('#odlg2').addEventListener('click',async e=>{
-  const b=e.target.closest('[data-a="odelfoto"]');if(!b)return;const a=opRef();
-  if(a&&await confirma('Remover a foto da opção “'+a.nome+'”?')){const velha=usadaOutro(a,a.imagem)?'':fotoPath(a.imagem);a.imagem='';save();if(velha)sb.storage.from('cardapio').remove([velha]);abreOp(a.id)}
-});
-$('#odlg2').addEventListener('close',()=>{
-  const g=db.grupos.find(x=>x.id===gcur),a=g&&g.itens.find(x=>x.id===onew);
-  if(a&&a.nome==='Nova opção'&&!a.preco&&!a.imagem){g.itens=g.itens.filter(x=>x!==a);save()}
-  onew='';ocur='';gRef();
-});
+guard($('#odlg2'),oDirty);
+$('#odlg2').addEventListener('input',e=>{if(!OD)return;const i=e.target.id;
+  if(i==='o_nome')OD.nome=e.target.value;else if(i==='o_preco')OD.preco=num(e.target.value);else if(i==='o_desc')OD.desc=e.target.value;else return;oSync()});
+$('#odlg2').addEventListener('change',async e=>{if(!OD)return;const i=e.target.id;
+  if(i==='o_disp'){OD.disp=e.target.checked;oSync()}
+  else if(i==='o_preco'){e.target.value=fp(OD.preco)}
+  else if(e.target.dataset.f==='ofoto'){const f=e.target.files[0];e.target.value='';if(!f)return;try{const u=await upFoto(f,'opc-'+OD.id);OUP.push(u);OD.imagem=u;reOp()}catch(x){aviso('Não consegui enviar a foto: '+(x.message||x))}}});
+$('#odlg2').addEventListener('click',e=>{if(!OD)return;
+  if(e.target.closest('[data-a="ofotodel"]')){OD.imagem='';reOp();return}
+  if(e.target.closest('[data-save]')&&oDirty()){
+    const nome=(OD.nome||'').trim();if(!nome){aviso('Informe o nome da opção.');return}OD.nome=nome;OD.desc=(OD.desc||'').trim();
+    const i=GD.itens.findIndex(x=>x.id===OD.id),c=JSON.parse(J(OD));if(i>-1)GD.itens[i]=c;else GD.itens.push(c);
+    GUP.push(...OUP);OUP=[];ON=false;OS=J(OD);reOp();gOps();notif('Opção salva ✓ (salve o opcional para gravar)')}});
+$('#odlg2').addEventListener('close',()=>{OUP.forEach(u=>{if(!GD||!GD.itens.some(a=>a.imagem===u))semUso(u)});OUP=[];OD=null;OS=''});
 $('#gedit').onclick=async e=>{
   const b=e.target.closest('button[data-a]');if(!b)return;const id=b.closest('.mr').dataset.id,i=db.grupos.findIndex(x=>x.id===id),g=db.grupos[i];if(!g)return;const a=b.dataset.a;
   if(a==='disp'){g.disp=g.disp===false;save();renderGrupos()}
   else if(a==='edit')abreGrupo(id);
-  else if(a==='dup'){const n=JSON.parse(JSON.stringify(g));n.id=uid();n.nome=g.nome+' (cópia)';n.itens=n.itens.map(x=>({...x,id:uid()}));db.grupos.splice(i+1,0,n);save();renderGrupos();notif('Opcional duplicado ✓')}
+  else if(a==='dup'){const n=JSON.parse(J(g));n.id=uid();n.nome=g.nome+' (cópia)';n.itens=n.itens.map(x=>({...x,id:uid()}));db.grupos.splice(i+1,0,n);save();renderGrupos();notif('Opcional duplicado ✓')}
   else if(a==='del'&&await confirma('Remover o opcional “'+g.nome+'” e todas as opções dele?')){db.grupos=db.grupos.filter(x=>x!==g);db.menu.forEach(m=>m.grupos=(m.grupos||[]).filter(x=>x!==g.id));save();renderGrupos()}
 };
 dragSort($('#gedit'),'.mr','.gh',ids=>{reordena(db.grupos,ids);save();renderGrupos()});
-$('#addGrupo').onclick=()=>{const g={id:uid(),nome:'Novo grupo',itens:[],tipo:'quantidade',minimo:0,maximo:10,disp:true};db.grupos.push(g);save();gnew=g.id;abreGrupo(g.id);const i=$('#g_nome');i.focus();i.select()};
+$('#addGrupo').onclick=()=>{abreGrupo(null,{id:uid(),nome:'',itens:[],tipo:'quantidade',minimo:0,maximo:10,disp:true});$('#g_nome').focus()};
 
 /* ---------- PDV: janela de opcionais com tipo, mínimo e máximo ---------- */
 const adsDe=g=>od.adds.filter(x=>g.itens.some(a=>a.id===x)).length;
@@ -2573,10 +2639,10 @@ $('#udlg').innerHTML=`<h2 id="utit"></h2>
 $('#udlg').className='wide';
 {const ub=document.createElement('button');ub.className='b';ub.id='ulink';ub.type='button';ub.textContent='Copiar link do entregador';ub.hidden=true;$('#udel').before(ub);
  ub.onclick=()=>{(navigator.clipboard?navigator.clipboard.writeText(LINK_ENTREGA):Promise.reject()).then(()=>notif('Link copiado. O entregador entra com e-mail e senha.')).catch(()=>aviso(LINK_ENTREGA))}}
-$('#ucancel').onclick=()=>$('#udlg').close();
+
 $('#utel').addEventListener('input',e=>{e.target.value=maskTel(e.target.value)});
 $('#ucep').addEventListener('input',e=>{e.target.value=maskCep(e.target.value)});
-function marcaObrig(){const on=!!(uedit&&uedit.sel&&tipoPed==='delivery');$$('#udlg label[data-r]').forEach(l=>{l.dataset.req=on?'1':''})}
+function marcaObrig(){if(typeof uSync==='function')uSync();const on=!!(uedit&&uedit.sel&&tipoPed==='delivery');$$('#udlg label[data-r]').forEach(l=>{l.dataset.req=on?'1':''})}
 function textoFun(){const f=$('#ufun').value;$('#ufunH').textContent=FUNH[f]+' Todos podem fazer pedidos normalmente.';
   $('#usenhaH').textContent=(f==='garcom'||f==='caixa')?'Obrigatória ao criar o acesso ou trocar a função (mínimo de 6 caracteres).':f==='entregador'?'Opcional: com e-mail e senha o entregador entra na página de rotas.':'';}
 $('#ufun').onchange=textoFun;
@@ -2648,6 +2714,17 @@ $('#usave').onclick=async()=>{
   }catch(e){aviso('Não consegui salvar: '+(e.message||e))}
   finally{btn.disabled=false}
 };
+/* Salvar do usuário: só habilita com alteração */
+let US=null;
+const uSnap=()=>J(['unome','utel','uemail','unasc','uend','unum','ubai','ucep','ucomp','ucid','uobs','usenha','ufun'].map(i=>$('#'+i).value));
+const uDirty=()=>US!==null&&uSnap()!==US;
+function uSync(){const b=$('#usave'),on=uDirty();b.disabled=!on;b.classList.toggle('p',on)}
+$('#usave').setAttribute('data-save','');
+$('#udlg').addEventListener('input',uSync);$('#udlg').addEventListener('change',uSync);
+{const a0=abreUsu;abreUsu=function(id){a0(id);US=uSnap();uSync()}}
+$('#ucancel').onclick=async()=>{if(!uDirty()||await confirma(CONF))$('#udlg').close()};
+$('#udlg').addEventListener('cancel',async e=>{if(uDirty()){e.preventDefault();if(await confirma(CONF))$('#udlg').close()}});
+$('#udlg').addEventListener('close',()=>{US=null});
 {const od0=$('#udel').onclick;$('#udel').onclick=async()=>{const id=uedit&&uedit.c.id;await od0();if(id&&!listaUsu().some(x=>x.id===id))delUX(id).catch(()=>{})}}
 
 /* ---------- Configurações da loja: cidade padrão dos cadastros ---------- */
